@@ -11,10 +11,12 @@ const ROLE_LABEL: Record<UserRole, string> = {
 export function AppShell({
   role,
   fullName,
+  subnav,
   children,
 }: {
   role: UserRole;
   fullName: string | null;
+  subnav?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -36,6 +38,11 @@ export function AppShell({
           <SignOutButton />
         </div>
       </header>
+      {subnav && (
+        <nav className="flex items-center gap-4 border-b px-4 py-2 sm:px-6">
+          {subnav}
+        </nav>
+      )}
       <main className="flex flex-1 flex-col">{children}</main>
     </div>
   );

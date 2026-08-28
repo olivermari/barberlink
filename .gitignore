@@ -43,3 +43,6 @@ next-env.d.ts
 
 # claude code local state (tool-specific, not app config)
 .claude/
+
+# supabase CLI local cache
+supabase/.temp/
