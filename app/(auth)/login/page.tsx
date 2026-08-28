@@ -53,7 +53,7 @@ export default function LoginPage() {
     <div className="mx-auto flex min-h-screen max-w-sm items-center justify-center px-4">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Log in to BarberLink</CardTitle>
+          <CardTitle>Log in to Barbero2Go</CardTitle>
           <CardDescription>
             Enter your credentials to continue.
           </CardDescription>

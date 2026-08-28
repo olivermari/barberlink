@@ -82,7 +82,7 @@ export default function SignupPage() {
     <div className="mx-auto flex min-h-screen max-w-sm items-center justify-center px-4">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Create your BarberLink account</CardTitle>
+          <CardTitle>Create your Barbero2Go account</CardTitle>
           <CardDescription>
             Sign up as a customer or as a barber.
           </CardDescription>

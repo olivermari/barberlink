@@ -1,4 +1,4 @@
-# BarberLink
+# Barbero2Go
 
 On-demand web platform connecting customers with independent, traveling freelance barbers for door-to-door haircut services.
 

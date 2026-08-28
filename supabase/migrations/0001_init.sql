@@ -1,4 +1,4 @@
--- BarberLink initial schema
+-- Barbero2Go initial schema
 -- Run this in the Supabase SQL Editor (Project -> SQL Editor -> New query),
 -- or via `supabase db push` if you set up the Supabase CLI later.
 

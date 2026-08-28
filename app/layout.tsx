@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BarberLink",
+  title: "Barbero2Go",
   description: "Door-to-door haircuts, on demand.",
 };
 
