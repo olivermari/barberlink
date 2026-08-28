@@ -15,7 +15,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, scheduled_at, address_text, status, price, barber_id, service_id",
+      "id, requested_at, address_text, status, price, barber_id, service_id",
     )
     .eq("id", id)
     .single();
@@ -53,7 +53,7 @@ export default async function BookingDetailPage({
           with {barber?.full_name ?? "Barber"}
         </p>
         <p className="text-sm text-muted-foreground">
-          {new Date(booking.scheduled_at).toLocaleString()}
+          Requested {new Date(booking.requested_at).toLocaleString()}
         </p>
         <p className="text-sm text-muted-foreground">{booking.address_text}</p>
         <p className="mt-1 font-medium">₱{booking.price}</p>

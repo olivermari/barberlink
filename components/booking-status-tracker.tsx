@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CheckIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -15,6 +15,7 @@ const STEPS: { status: string; label: string }[] = [
 ];
 
 const STATUS_TOAST: Record<string, string> = {
+  pending: "You're up next!",
   accepted: "Your barber accepted the booking.",
   on_the_way: "Your barber is on the way!",
   in_service: "Your service has started.",
@@ -33,6 +34,7 @@ export function BookingStatusTracker({
   onStatusChange?: (status: string) => void;
 }) {
   const [status, setStatus] = useState(initialStatus);
+  const statusRef = useRef(initialStatus);
 
   useEffect(() => {
     const supabase = createClient();
@@ -61,14 +63,13 @@ export function BookingStatusTracker({
           },
           (payload) => {
             const nextStatus = (payload.new as { status: string }).status;
-            setStatus((prev) => {
-              if (prev !== nextStatus) {
-                const message = STATUS_TOAST[nextStatus];
-                if (message) toast.info(message);
-                onStatusChange?.(nextStatus);
-              }
-              return nextStatus;
-            });
+            if (statusRef.current === nextStatus) return;
+            statusRef.current = nextStatus;
+
+            const message = STATUS_TOAST[nextStatus];
+            if (message) toast.info(message);
+            onStatusChange?.(nextStatus);
+            setStatus(nextStatus);
           },
         )
         .subscribe();
@@ -89,6 +90,18 @@ export function BookingStatusTracker({
         {status === "declined"
           ? "This booking was declined by the barber."
           : "This booking was cancelled."}
+      </div>
+    );
+  }
+
+  if (status === "queued") {
+    return (
+      <div className="rounded-lg border px-4 py-3 text-sm">
+        <p className="font-medium">You&apos;re in the queue</p>
+        <p className="text-muted-foreground">
+          This barber is currently busy. We&apos;ll notify you the moment
+          it&apos;s your turn.
+        </p>
       </div>
     );
   }

@@ -12,10 +12,14 @@ import { Separator } from "@/components/ui/separator";
 
 export default async function BarberProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ quick?: string }>;
 }) {
   const { id } = await params;
+  const { quick } = await searchParams;
+  const isQuickMatch = quick === "1";
   const supabase = await createClient();
 
   const { data: barber } = await supabase
@@ -73,6 +77,12 @@ export default async function BarberProfilePage({
         </p>
       </div>
 
+      {isQuickMatch && (
+        <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary">
+          Matched via Quick Match — no extra fee
+        </div>
+      )}
+
       {barber.bio && <p className="text-sm text-muted-foreground">{barber.bio}</p>}
 
       {portfolio && portfolio.length > 0 && (
@@ -120,7 +130,11 @@ export default async function BarberProfilePage({
                     {service.duration_minutes} min
                   </p>
                 </div>
-                <BookingDialog barberId={id} service={service} />
+                <BookingDialog
+                  barberId={id}
+                  service={service}
+                  directPick={!isQuickMatch}
+                />
               </CardContent>
             </Card>
           ))}

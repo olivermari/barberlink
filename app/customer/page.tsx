@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { distanceKm } from "@/lib/distance";
@@ -32,8 +34,10 @@ type Barber = {
 };
 
 export default function CustomerHome() {
+  const router = useRouter();
   const { coords, status } = useGeolocation();
   const [barbers, setBarbers] = useState<Barber[] | null>(null);
+  const [matching, setMatching] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -89,20 +93,62 @@ export default function CustomerHome() {
       .sort((a, b) => a.distanceKm - b.distanceKm);
   }, [barbers, coords]);
 
+  async function handleQuickMatch() {
+    if (nearby.length === 0) {
+      toast.error("No barbers available right now.");
+      return;
+    }
+
+    setMatching(true);
+    const supabase = createClient();
+    const { data: busyRows, error } = await supabase.rpc("barbers_busy_status", {
+      target_barber_ids: nearby.map((b) => b.id),
+    });
+    setMatching(false);
+
+    if (error) {
+      toast.error("Couldn't check barber availability. Try again.");
+      return;
+    }
+
+    const busyList = (busyRows ?? []) as {
+      barber_id: string;
+      is_busy: boolean;
+    }[];
+    const busyIds = new Set(
+      busyList.filter((r) => r.is_busy).map((r) => r.barber_id),
+    );
+    const free = nearby.find((b) => !busyIds.has(b.id));
+
+    if (!free) {
+      toast.error(
+        "No barbers available right now — pick one below to join their queue.",
+      );
+      return;
+    }
+
+    router.push(`/customer/barbers/${free.id}?quick=1`);
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Browse barbers</h1>
-        <p className="text-sm text-muted-foreground">
-          {status === "locating" && "Finding your location..."}
-          {status === "denied" &&
-            "Location access denied — showing barbers near Manila."}
-          {status === "unsupported" &&
-            "Location isn't available here — showing barbers near Manila."}
-          {status === "granted" &&
-            barbers !== null &&
-            `${nearby.length} barber${nearby.length === 1 ? "" : "s"} near you`}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Browse barbers</h1>
+          <p className="text-sm text-muted-foreground">
+            {status === "locating" && "Finding your location..."}
+            {status === "denied" &&
+              "Location access denied — showing barbers near Manila."}
+            {status === "unsupported" &&
+              "Location isn't available here — showing barbers near Manila."}
+            {status === "granted" &&
+              barbers !== null &&
+              `${nearby.length} barber${nearby.length === 1 ? "" : "s"} near you`}
+          </p>
+        </div>
+        <Button onClick={handleQuickMatch} disabled={matching}>
+          {matching ? "Matching..." : "Quick Match"}
+        </Button>
       </div>
 
       <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[380px_1fr]">

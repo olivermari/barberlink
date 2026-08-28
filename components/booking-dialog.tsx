@@ -25,20 +25,25 @@ type Service = {
   duration_minutes: number;
 };
 
+const SURCHARGE = 50;
+
 export function BookingDialog({
   barberId,
   service,
+  directPick,
 }: {
   barberId: string;
   service: Service;
+  directPick: boolean;
 }) {
   const router = useRouter();
   const { coords } = useGeolocation();
   const [open, setOpen] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState("");
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const total = directPick ? service.price + SURCHARGE : service.price;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,38 +68,42 @@ export function BookingDialog({
       .single();
 
     const feePercent = Number(feeSetting?.value ?? 10);
-    const platformFee = Math.round(service.price * feePercent) / 100;
-    const barberPayout = Math.round((service.price - platformFee) * 100) / 100;
+    const baseFee = Math.round(service.price * feePercent) / 100;
+    const platformFee = directPick ? baseFee + SURCHARGE : baseFee;
+    const barberPayout = Math.round((service.price - baseFee) * 100) / 100;
 
-    const { error: insertError } = await supabase.from("bookings").insert({
-      customer_id: user.id,
-      barber_id: barberId,
-      service_id: service.id,
-      scheduled_at: new Date(scheduledAt).toISOString(),
-      address_text: address,
-      address_lat: coords.lat,
-      address_lng: coords.lng,
-      price: service.price,
-      platform_fee: platformFee,
-      barber_payout: barberPayout,
-    });
+    const { data: booking, error: insertError } = await supabase
+      .from("bookings")
+      .insert({
+        customer_id: user.id,
+        barber_id: barberId,
+        service_id: service.id,
+        address_text: address,
+        address_lat: coords.lat,
+        address_lng: coords.lng,
+        price: total,
+        platform_fee: platformFee,
+        barber_payout: barberPayout,
+      })
+      .select("id, status")
+      .single();
 
     setLoading(false);
 
-    if (insertError) {
-      setError(insertError.message);
+    if (insertError || !booking) {
+      setError(insertError?.message ?? "Something went wrong.");
       return;
     }
 
     setOpen(false);
-    toast.success(`Booked ${service.name}`);
-    router.push("/customer/bookings");
+    toast.success(
+      booking.status === "queued"
+        ? "You're in the queue — this barber is currently busy."
+        : "Request sent!",
+    );
+    router.push(`/customer/bookings/${booking.id}`);
     router.refresh();
   }
-
-  const [minDateTime] = useState(() =>
-    new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16),
-  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -104,21 +113,11 @@ export function BookingDialog({
           <DialogTitle>Book {service.name}</DialogTitle>
           <DialogDescription>
             ₱{service.price} · {service.duration_minutes} min
+            {directPick && ` · +₱${SURCHARGE} to choose this barber`}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="scheduledAt">Date &amp; time</Label>
-            <Input
-              id="scheduledAt"
-              type="datetime-local"
-              min={minDateTime}
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-              required
-            />
-          </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="address">Address</Label>
             <Input
@@ -134,11 +133,13 @@ export function BookingDialog({
             </p>
           </div>
 
+          <p className="text-sm font-medium">Total: ₱{total}</p>
+
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Booking..." : "Confirm booking"}
+              {loading ? "Requesting..." : "Request now"}
             </Button>
           </DialogFooter>
         </form>

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  queued: "outline",
   pending: "outline",
   accepted: "secondary",
   declined: "destructive",
@@ -20,6 +21,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 const STATUS_LABEL: Record<string, string> = {
+  queued: "In queue",
   pending: "Pending",
   accepted: "Accepted",
   declined: "Declined",
@@ -36,10 +38,10 @@ export default async function CustomerBookingsPage() {
   const { data: bookings } = await supabase
     .from("bookings")
     .select(
-      "id, scheduled_at, address_text, status, price, barber_id, service_id",
+      "id, requested_at, address_text, status, price, barber_id, service_id",
     )
     .eq("customer_id", user.id)
-    .order("scheduled_at", { ascending: false });
+    .order("requested_at", { ascending: false });
 
   const barberIds = [...new Set((bookings ?? []).map((b) => b.barber_id))];
   const serviceIds = [...new Set((bookings ?? []).map((b) => b.service_id).filter(Boolean))] as string[];
@@ -80,7 +82,7 @@ export default async function CustomerBookingsPage() {
               </CardHeader>
               <CardContent className="flex flex-col gap-1 text-sm text-muted-foreground">
                 <p>with {barberName.get(b.barber_id) ?? "Barber"}</p>
-                <p>{new Date(b.scheduled_at).toLocaleString()}</p>
+                <p>Requested {new Date(b.requested_at).toLocaleString()}</p>
                 <p>{b.address_text}</p>
                 <p className="font-medium text-foreground">₱{b.price}</p>
               </CardContent>
