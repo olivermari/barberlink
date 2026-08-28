@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BookingStatusTracker } from "@/components/booking-status-tracker";
+import { CancelBookingButton } from "@/components/cancel-booking-button";
 import { ReviewForm } from "@/components/review-form";
 
 export function BookingProgress({
@@ -24,6 +25,8 @@ export function BookingProgress({
         initialStatus={initialStatus}
         onStatusChange={setStatus}
       />
+
+      <CancelBookingButton bookingId={bookingId} status={status} />
 
       {status === "completed" &&
         (existingReview ? (
