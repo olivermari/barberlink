@@ -39,9 +39,10 @@ See commit history for the detailed progress. Build phases (✅ shipped):
 1. ✅ Scaffold + schema + auth
 2. ✅ Role-based route protection + app shell
 3. ✅ Customer interface — browse/map, barber profiles, Quick Match + Choose Your Barber (with per-barber queueing and nearest-location promotion), live status tracking, reviews, cancel
-4. Visual design system — logo, color palette, typography, component/button styling, motion, layout conventions across all three interfaces
-5. Barber interface (profile, availability, bookings/queue, earnings)
-6. Realtime booking pipeline — barber side (customer side already live in Phase 3)
-7. Payments (PayMongo) + token ledger
+4. ✅ Barber interface — profile/services/portfolio (with real photo uploads), mandatory-GPS online/offline toggle, bookings/queue dashboard with accept/decline/status actions, job map + one-tap navigation, earnings placeholder
+5. ✅ Realtime booking pipeline — barber side (customer side already live in Phase 3)
+6. Payments (PayMongo) + token ledger
+7. Landing page — public-facing marketing/entry page
 8. Admin interface (verification, coverage, analytics, disputes)
-9. Final polish, QA, production deploy
+9. Visual design system — logo, color palette, typography, component/button styling, motion, layout conventions across all three interfaces
+10. Final polish, QA, production deploy

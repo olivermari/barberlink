@@ -44,6 +44,15 @@ export default function LoginPage() {
       .eq("id", data.user.id)
       .single();
 
+    if (profile?.role === "barber") {
+      // Every fresh login starts offline — going online is a deliberate
+      // action the barber takes each session, not a persisted default.
+      await supabase
+        .from("barber_profiles")
+        .update({ is_available: false })
+        .eq("id", data.user.id);
+    }
+
     setLoading(false);
     router.push(roleHomePath(profile?.role));
     router.refresh();

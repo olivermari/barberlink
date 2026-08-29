@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useGeolocation } from "@/lib/use-geolocation";
-import { distanceKm } from "@/lib/distance";
+import { distanceKm, MAX_MATCH_RADIUS_KM } from "@/lib/distance";
 import {
   Card,
   CardContent,
@@ -89,7 +89,7 @@ export default function CustomerHome() {
         ...b,
         distanceKm: distanceKm(coords, { lat: b.lat, lng: b.lng }),
       }))
-      .filter((b) => b.distanceKm <= b.serviceRadiusKm)
+      .filter((b) => b.distanceKm <= Math.min(MAX_MATCH_RADIUS_KM, b.serviceRadiusKm))
       .sort((a, b) => a.distanceKm - b.distanceKm);
   }, [barbers, coords]);
 

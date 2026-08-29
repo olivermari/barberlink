@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/supabase/require-profile";
 import { BookingProgress } from "@/components/booking-progress";
+import { BookingChat } from "@/components/chat/booking-chat";
 
 export default async function BookingDetailPage({
   params,
@@ -9,7 +10,7 @@ export default async function BookingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireProfile();
+  const { user } = await requireProfile();
   const supabase = await createClient();
 
   const { data: booking } = await supabase
@@ -64,6 +65,12 @@ export default async function BookingDetailPage({
         barberId={booking.barber_id}
         initialStatus={booking.status}
         existingReview={review}
+      />
+
+      <BookingChat
+        bookingId={booking.id}
+        currentUserId={user.id}
+        otherPartyLabel={barber?.full_name ?? "Barber"}
       />
     </div>
   );

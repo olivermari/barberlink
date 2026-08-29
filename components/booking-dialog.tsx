@@ -3,8 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { LocateFixedIcon, MapPinIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useGeolocation } from "@/lib/use-geolocation";
+import { getCurrentPosition, LocationRequiredError } from "@/lib/get-current-position";
+import { reverseGeocode } from "@/lib/reverse-geocode";
+import { LocationPicker } from "@/components/map/location-picker-lazy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,13 +41,39 @@ export function BookingDialog({
   directPick: boolean;
 }) {
   const router = useRouter();
-  const { coords } = useGeolocation();
+  const { coords: defaultCoords } = useGeolocation();
   const [open, setOpen] = useState(false);
   const [address, setAddress] = useState("");
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
+  const [showMap, setShowMap] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const coords = pin ?? defaultCoords;
   const total = directPick ? service.price + SURCHARGE : service.price;
+
+  async function applyLocation(next: { lat: number; lng: number }) {
+    setPin(next);
+    const label = await reverseGeocode(next.lat, next.lng);
+    if (label) setAddress(label);
+  }
+
+  async function handleUseCurrentLocation() {
+    setLocating(true);
+    try {
+      const fresh = await getCurrentPosition();
+      await applyLocation(fresh);
+    } catch (err) {
+      toast.error(
+        err instanceof LocationRequiredError
+          ? err.message
+          : "Couldn't get your location. Try again.",
+      );
+    } finally {
+      setLocating(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -127,9 +157,36 @@ export function BookingDialog({
               onChange={(e) => setAddress(e.target.value)}
               required
             />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleUseCurrentLocation}
+                disabled={locating}
+              >
+                <LocateFixedIcon />
+                {locating ? "Locating..." : "Use current location"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMap((v) => !v)}
+              >
+                <MapPinIcon />
+                {showMap ? "Hide map" : "Pin on map"}
+              </Button>
+            </div>
+            {showMap && (
+              <div className="h-48 w-full overflow-hidden rounded-lg border">
+                <LocationPicker position={coords} onChange={applyLocation} />
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              We&apos;ll use your device&apos;s current location as your pin —
-              make sure it&apos;s enabled.
+              {pin
+                ? "Pin set — the address above is editable if it's not quite right."
+                : "Type your address, or use the buttons above to set your exact pin."}
             </p>
           </div>
 
