@@ -25,11 +25,29 @@ export function AvailabilityToggle({
     const supabase = createClient();
 
     if (next) {
+      setLoading(true);
+
+      // A negative balance means the barber owes the platform
+      // commission from cash jobs — checked fresh, not from stale
+      // page-load state, since it can change between visits.
+      const { data: profile } = await supabase
+        .from("barber_profiles")
+        .select("token_balance")
+        .eq("id", barberId)
+        .single();
+
+      if ((profile?.token_balance ?? 0) < 0) {
+        setLoading(false);
+        toast.error(
+          `You owe ₱${Math.abs(profile?.token_balance ?? 0)} in commission from cash jobs — top up on the Earnings page to go online again.`,
+        );
+        return;
+      }
+
       // Going online requires a fresh, real GPS fix — customers rely on
       // this position to see the barber as nearby, so a stale or
       // permission-denied location must block going online rather than
       // silently defaulting anywhere.
-      setLoading(true);
       let coords: { lat: number; lng: number };
       try {
         coords = await getCurrentPosition();

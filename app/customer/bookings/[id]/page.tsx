@@ -4,6 +4,21 @@ import { requireProfile } from "@/lib/supabase/require-profile";
 import { BookingProgress } from "@/components/booking-progress";
 import { BookingChat } from "@/components/chat/booking-chat";
 
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cod: "Cash",
+  gcash: "GCash",
+  maya: "Maya",
+  card: "Card",
+  instapay: "InstaPay",
+};
+
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  paid: "Paid",
+  pending: "Pending",
+  failed: "Failed",
+  refunded: "Refunded",
+};
+
 export default async function BookingDetailPage({
   params,
 }: {
@@ -16,7 +31,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, requested_at, address_text, status, price, barber_id, service_id",
+      "id, requested_at, address_text, status, price, barber_id, service_id, payment_method, payment_status",
     )
     .eq("id", id)
     .single();
@@ -58,6 +73,11 @@ export default async function BookingDetailPage({
         </p>
         <p className="text-sm text-muted-foreground">{booking.address_text}</p>
         <p className="mt-1 font-medium">₱{booking.price}</p>
+        <p className="text-sm text-muted-foreground">
+          {PAYMENT_METHOD_LABEL[booking.payment_method ?? ""] ?? "Payment method not set"}
+          {" · "}
+          {PAYMENT_STATUS_LABEL[booking.payment_status] ?? booking.payment_status}
+        </p>
       </div>
 
       <BookingProgress

@@ -21,6 +21,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Service = {
   id: string;
@@ -30,6 +37,16 @@ type Service = {
 };
 
 const SURCHARGE = 50;
+
+const PAYMENT_METHODS = [
+  { value: "cod", label: "Cash" },
+  { value: "gcash", label: "GCash" },
+  { value: "maya", label: "Maya" },
+  { value: "card", label: "Card" },
+  { value: "instapay", label: "InstaPay" },
+] as const;
+
+const ONLINE_METHODS = new Set(["gcash", "maya", "card", "instapay"]);
 
 export function BookingDialog({
   barberId,
@@ -47,6 +64,7 @@ export function BookingDialog({
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<string>("cod");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,15 +132,42 @@ export function BookingDialog({
         price: total,
         platform_fee: platformFee,
         barber_payout: barberPayout,
+        payment_method: paymentMethod,
       })
       .select("id, status")
       .single();
 
-    setLoading(false);
-
     if (insertError || !booking) {
+      setLoading(false);
       setError(insertError?.message ?? "Something went wrong.");
       return;
+    }
+
+    if (ONLINE_METHODS.has(paymentMethod)) {
+      const res = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking.id }),
+      });
+      const payment = await res.json();
+
+      setLoading(false);
+
+      if (!res.ok) {
+        setError(payment.error ?? "Payment couldn't be started.");
+        return;
+      }
+
+      if (payment.checkoutUrl) {
+        window.location.href = payment.checkoutUrl;
+        return;
+      }
+
+      toast.success(
+        "Payment simulated — PayMongo isn't configured yet, so this booking was marked paid automatically for testing.",
+      );
+    } else {
+      setLoading(false);
     }
 
     setOpen(false);
@@ -188,6 +233,29 @@ export function BookingDialog({
                 ? "Pin set — the address above is editable if it's not quite right."
                 : "Type your address, or use the buttons above to set your exact pin."}
             </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="paymentMethod">Payment method</Label>
+            <Select
+              value={paymentMethod}
+              onValueChange={(value) => value && setPaymentMethod(value)}
+            >
+              <SelectTrigger id="paymentMethod" className="w-full">
+                <SelectValue>
+                  {(value: string) =>
+                    PAYMENT_METHODS.find((m) => m.value === value)?.label ?? value
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_METHODS.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <p className="text-sm font-medium">Total: ₱{total}</p>

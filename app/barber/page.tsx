@@ -5,6 +5,7 @@ import { BookingActionButtons } from "@/components/barber/booking-action-buttons
 import { BookingUpdatesListener } from "@/components/barber/booking-updates-listener";
 import { JobMap } from "@/components/barber/job-map-lazy";
 import { BookingChat } from "@/components/chat/booking-chat";
+import { MarkPaidButton } from "@/components/barber/mark-paid-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -32,6 +33,15 @@ type BookingRow = {
   price: number;
   customer_id: string;
   service_id: string | null;
+  payment_method: string | null;
+  payment_status: string;
+};
+
+const PAYMENT_LABEL: Record<string, string> = {
+  paid: "Paid",
+  pending: "Pending",
+  failed: "Payment failed",
+  refunded: "Refunded",
 };
 
 export default async function BarberDashboardPage() {
@@ -42,13 +52,13 @@ export default async function BarberDashboardPage() {
     await Promise.all([
       supabase
         .from("barber_profiles")
-        .select("is_available, verification_status, current_lat, current_lng")
+        .select("is_available, verification_status, current_lat, current_lng, token_balance")
         .eq("id", user.id)
         .single(),
       supabase
         .from("bookings")
         .select(
-          "id, requested_at, address_text, address_lat, address_lng, status, price, customer_id, service_id",
+          "id, requested_at, address_text, address_lat, address_lng, status, price, customer_id, service_id, payment_method, payment_status",
         )
         .eq("barber_id", user.id)
         .in("status", ACTIVE_STATUSES)
@@ -57,7 +67,7 @@ export default async function BarberDashboardPage() {
       supabase
         .from("bookings")
         .select(
-          "id, requested_at, address_text, address_lat, address_lng, status, price, customer_id, service_id",
+          "id, requested_at, address_text, address_lat, address_lng, status, price, customer_id, service_id, payment_method, payment_status",
         )
         .eq("barber_id", user.id)
         .eq("status", "queued")
@@ -94,7 +104,20 @@ export default async function BarberDashboardPage() {
       )}
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          {barberProfile && (
+            <p
+              className={
+                barberProfile.token_balance < 0
+                  ? "text-sm text-destructive"
+                  : "text-sm text-muted-foreground"
+              }
+            >
+              Balance: ₱{barberProfile.token_balance}
+            </p>
+          )}
+        </div>
         {barberProfile && (
           <AvailabilityToggle
             barberId={user.id}
@@ -121,9 +144,14 @@ export default async function BarberDashboardPage() {
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center justify-between text-base">
                 {serviceName.get(activeBooking.service_id ?? "") ?? "Service"}
-                <Badge variant="secondary">
-                  {STATUS_LABEL[activeBooking.status] ?? activeBooking.status}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={activeBooking.payment_status === "paid" ? "default" : "outline"}>
+                    {PAYMENT_LABEL[activeBooking.payment_status] ?? activeBooking.payment_status}
+                  </Badge>
+                  <Badge variant="secondary">
+                    {STATUS_LABEL[activeBooking.status] ?? activeBooking.status}
+                  </Badge>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
@@ -140,11 +168,15 @@ export default async function BarberDashboardPage() {
                 barberLat={barberProfile?.current_lat}
                 barberLng={barberProfile?.current_lng}
               />
-              <div className="mt-1">
+              <div className="mt-1 flex flex-wrap gap-2">
                 <BookingActionButtons
                   bookingId={activeBooking.id}
                   status={activeBooking.status}
                 />
+                {activeBooking.payment_method === "cod" &&
+                  activeBooking.payment_status !== "paid" && (
+                    <MarkPaidButton bookingId={activeBooking.id} />
+                  )}
               </div>
             </CardContent>
           </Card>

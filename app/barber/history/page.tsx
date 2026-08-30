@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/supabase/require-profile";
+import { MarkPaidButton } from "@/components/barber/mark-paid-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -15,7 +16,7 @@ export default async function BarberHistoryPage() {
   const { data: bookings } = await supabase
     .from("bookings")
     .select(
-      "id, updated_at, address_text, price, customer_id, service_id",
+      "id, updated_at, address_text, price, customer_id, service_id, payment_method, payment_status",
     )
     .eq("barber_id", user.id)
     .eq("status", "completed")
@@ -75,7 +76,12 @@ export default async function BarberHistoryPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-base">
                   {serviceName.get(b.service_id ?? "") ?? "Service"}
-                  <Badge variant="secondary">₱{b.price}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={b.payment_status === "paid" ? "default" : "outline"}>
+                      {b.payment_status === "paid" ? "Paid" : "Unpaid"}
+                    </Badge>
+                    <Badge variant="secondary">₱{b.price}</Badge>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -87,6 +93,11 @@ export default async function BarberHistoryPage() {
                     ★ {review.rating}
                     {review.comment && ` — "${review.comment}"`}
                   </p>
+                )}
+                {b.payment_method === "cod" && b.payment_status !== "paid" && (
+                  <div className="mt-1">
+                    <MarkPaidButton bookingId={b.id} />
+                  </div>
                 )}
               </CardContent>
             </Card>
