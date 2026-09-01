@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createSource } from "@/lib/paymongo";
+import { createGcashPayment } from "@/lib/paymongo";
 
-const ONLINE_METHODS = ["gcash", "maya", "card", "instapay"];
+const ONLINE_METHODS = ["gcash"];
 
 export async function POST(request: Request) {
   const { amount, method } = await request.json();
@@ -64,20 +64,18 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
 
   try {
-    const source = await createSource({
+    const payment = await createGcashPayment({
       amount,
-      method: method as "gcash" | "maya" | "card" | "instapay",
       bookingId: `topup-${topup.id}`,
-      redirectSuccessUrl: `${origin}/barber/earnings?topup=success`,
-      redirectFailedUrl: `${origin}/barber/earnings?topup=failed`,
+      returnUrl: `${origin}/barber/earnings`,
     });
 
     await supabase
       .from("wallet_topups")
-      .update({ provider_payment_id: source.id })
+      .update({ provider_payment_id: payment.id })
       .eq("id", topup.id);
 
-    return NextResponse.json({ checkoutUrl: source.checkoutUrl });
+    return NextResponse.json({ checkoutUrl: payment.checkoutUrl });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "PayMongo request failed." },

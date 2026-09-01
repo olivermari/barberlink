@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createSource } from "@/lib/paymongo";
+import { createGcashPayment } from "@/lib/paymongo";
 
-const ONLINE_METHODS = ["gcash", "maya", "card", "instapay"];
+const ONLINE_METHODS = ["gcash"];
 
 export async function POST(request: Request) {
   const { bookingId } = await request.json();
@@ -82,24 +82,22 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
 
   try {
-    const source = await createSource({
+    const payment = await createGcashPayment({
       amount: booking.price,
-      method: booking.payment_method as "gcash" | "maya" | "card" | "instapay",
       bookingId: booking.id,
-      redirectSuccessUrl: `${origin}/customer/bookings/${booking.id}?payment=success`,
-      redirectFailedUrl: `${origin}/customer/bookings/${booking.id}?payment=failed`,
+      returnUrl: `${origin}/customer/bookings/${booking.id}`,
     });
 
     await supabase.from("payments").insert({
       booking_id: booking.id,
       provider: "paymongo",
-      provider_payment_id: source.id,
+      provider_payment_id: payment.id,
       method: booking.payment_method,
       amount: booking.price,
       status: "pending",
     });
 
-    return NextResponse.json({ checkoutUrl: source.checkoutUrl });
+    return NextResponse.json({ checkoutUrl: payment.checkoutUrl });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "PayMongo request failed." },

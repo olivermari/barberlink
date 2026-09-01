@@ -41,12 +41,9 @@ const SURCHARGE = 50;
 const PAYMENT_METHODS = [
   { value: "cod", label: "Cash" },
   { value: "gcash", label: "GCash" },
-  { value: "maya", label: "Maya" },
-  { value: "card", label: "Card" },
-  { value: "instapay", label: "InstaPay" },
 ] as const;
 
-const ONLINE_METHODS = new Set(["gcash", "maya", "card", "instapay"]);
+const ONLINE_METHODS = new Set(["gcash"]);
 
 export function BookingDialog({
   barberId,

@@ -3,11 +3,14 @@ import { verifyWebhookSignature } from "@/lib/paymongo";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 // PayMongo calls this server-to-server (no user session), so it needs
-// the service-role client below to write past RLS. Structurally
-// correct against PayMongo's documented event shape, but untestable
-// in this environment without real sandbox keys and a live webhook
-// delivery — verify this end to end once PAYMONGO_WEBHOOK_SECRET and
-// PAYMONGO_SECRET_KEY are both set.
+// the service-role client below to write past RLS.
+//
+// Event payload shapes for payment_intent.succeeded / payment.paid /
+// payment.failed aren't fully documented in what's publicly fetchable
+// right now — the id extraction below is a best-effort read of a
+// couple of known field paths, not confirmed against a real event.
+// This needs a live test webhook from your sandbox to verify; if it
+// doesn't fire correctly, log the raw payload here and adjust.
 export async function POST(request: Request) {
   const rawBody = await request.text();
   const signature = request.headers.get("paymongo-signature");
@@ -19,25 +22,36 @@ export async function POST(request: Request) {
   const event = JSON.parse(rawBody);
   const eventType = event?.data?.attributes?.type as string | undefined;
   const resource = event?.data?.attributes?.data;
-  const sourceId: string | undefined =
-    resource?.attributes?.source?.id ?? resource?.id;
 
-  if (!sourceId) {
-    return NextResponse.json({ received: true });
-  }
-
-  const supabase = createServiceRoleClient();
-  const nextStatus = eventType === "payment.failed" ? "failed" : "paid";
-  const matchesEvent = eventType === "payment.paid" || eventType === "source.chargeable" || eventType === "payment.failed";
+  const matchesEvent =
+    eventType === "payment_intent.succeeded" ||
+    eventType === "payment.paid" ||
+    eventType === "payment.failed";
 
   if (!matchesEvent) {
     return NextResponse.json({ received: true });
   }
 
+  // payment_intent.* events: the resource IS the payment intent, so
+  // its own id is what we stored as provider_payment_id. payment.*
+  // events: the resource is a Payment, which references its parent
+  // intent — try the common field name, falling back to the
+  // payment's own id in case that assumption is wrong.
+  const paymentIntentId: string | undefined = eventType.startsWith("payment_intent.")
+    ? resource?.id
+    : (resource?.attributes?.payment_intent_id ?? resource?.id);
+
+  if (!paymentIntentId) {
+    return NextResponse.json({ received: true });
+  }
+
+  const supabase = createServiceRoleClient();
+  const nextStatus = eventType === "payment.failed" ? "failed" : "paid";
+
   const { data: payment } = await supabase
     .from("payments")
     .select("id, booking_id")
-    .eq("provider_payment_id", sourceId)
+    .eq("provider_payment_id", paymentIntentId)
     .maybeSingle();
 
   if (payment) {
@@ -52,7 +66,7 @@ export async function POST(request: Request) {
   const { data: topup } = await supabase
     .from("wallet_topups")
     .select("id")
-    .eq("provider_payment_id", sourceId)
+    .eq("provider_payment_id", paymentIntentId)
     .maybeSingle();
 
   if (topup) {

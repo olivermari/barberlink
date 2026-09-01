@@ -6,25 +6,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-const METHODS = [
-  { value: "gcash", label: "GCash" },
-  { value: "maya", label: "Maya" },
-  { value: "card", label: "Card" },
-  { value: "instapay", label: "InstaPay" },
-] as const;
+const METHOD = "gcash";
 
 export function WalletTopupForm() {
   const router = useRouter();
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<string>("gcash");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,7 +21,7 @@ export function WalletTopupForm() {
     const res = await fetch("/api/payments/topup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: Number(amount), method }),
+      body: JSON.stringify({ amount: Number(amount), method: METHOD }),
     });
     const result = await res.json();
 
@@ -71,23 +58,7 @@ export function WalletTopupForm() {
           required
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="topupMethod">Method</Label>
-        <Select value={method} onValueChange={(value) => value && setMethod(value)}>
-          <SelectTrigger id="topupMethod" className="w-full sm:w-32">
-            <SelectValue>
-              {(value: string) => METHODS.find((m) => m.value === value)?.label ?? value}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {METHODS.map((m) => (
-              <SelectItem key={m.value} value={m.value}>
-                {m.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <p className="text-sm text-muted-foreground sm:pb-2">via GCash</p>
       <Button type="submit" disabled={loading || !amount}>
         {loading ? "Processing..." : "Top up"}
       </Button>
