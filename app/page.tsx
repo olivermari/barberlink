@@ -71,7 +71,7 @@ export default function Home() {
         </span>
         <div className="hidden items-center gap-1.5 text-xs text-[var(--lp-ink-soft)] sm:flex">
           <MapPinIcon className="size-3.5" aria-hidden="true" />
-          Metro Manila
+          Lipa City
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -99,7 +99,7 @@ export default function Home() {
           background image. */}
       <section className="mx-auto flex max-w-4xl flex-col items-center gap-8 px-4 py-20 text-center sm:px-8 sm:py-28">
         <p className={`${eyebrow} text-lg sm:text-xl`}>
-          Same-day · Metro Manila
+          Same-day · Lipa City
         </p>
         <h1 className={`${headline} text-4xl sm:text-6xl md:text-7xl`}>
           What do you need today?
@@ -243,7 +243,7 @@ export default function Home() {
               Barbero2Go
             </p>
             <p className="mt-1 text-sm text-[var(--lp-ink-soft)]">
-              Door-to-door haircuts, on demand · Metro Manila
+              Door-to-door haircuts, on demand · Lipa City
             </p>
           </div>
           <div className="flex items-center gap-4 text-sm">

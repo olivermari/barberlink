@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { roleHomePath } from "@/lib/role-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -59,10 +60,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm items-center justify-center px-4">
+    <div className="flex w-full max-w-sm flex-col gap-6">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Log in to Barbero2Go</CardTitle>
+          <CardTitle className="text-xl">Let&apos;s get you signed in</CardTitle>
           <CardDescription>
             Enter your credentials to continue.
           </CardDescription>
@@ -74,6 +75,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
+                className="h-11"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -81,9 +83,9 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
+                className="h-11"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -92,19 +94,23 @@ export default function LoginPage() {
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-11 w-full text-base"
+            >
               {loading ? "Logging in..." : "Log in"}
             </Button>
           </form>
-
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="underline">
-              Sign up
-            </Link>
-          </p>
         </CardContent>
       </Card>
+
+      <p className="text-center text-sm text-muted-foreground">
+        Don&apos;t have an account?{" "}
+        <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">
+          Sign up
+        </Link>
+      </p>
     </div>
   );
 }

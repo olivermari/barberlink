@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -70,39 +71,37 @@ function SignupForm() {
 
   if (confirmSent) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-sm items-center justify-center px-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Check your email</CardTitle>
-            <CardDescription>
-              We sent a confirmation link to {email}. Confirm your address,
-              then log in.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/login" className="text-sm underline">
-              Back to login
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Check your email</CardTitle>
+          <CardDescription>
+            We sent a confirmation link to {email}. Confirm your address,
+            then log in.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/login" className="text-sm underline">
+            Back to login
+          </Link>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm items-center justify-center px-4">
+    <div className="flex w-full max-w-sm flex-col gap-6">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Create your Barbero2Go account</CardTitle>
+          <CardTitle className="text-xl">Let&apos;s get you started</CardTitle>
           <CardDescription>
-            Sign up as a customer or as a barber.
+            Sign up as a customer, or as a barber to start taking bookings.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs
             value={role}
             onValueChange={(v) => setRole(v as "customer" | "barber")}
-            className="mb-4"
+            className="mb-5"
           >
             <TabsList className="w-full">
               <TabsTrigger value="customer" className="flex-1">
@@ -119,6 +118,7 @@ function SignupForm() {
               <Label htmlFor="fullName">Full name</Label>
               <Input
                 id="fullName"
+                className="h-11"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -129,6 +129,7 @@ function SignupForm() {
               <Input
                 id="email"
                 type="email"
+                className="h-11"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -136,9 +137,9 @@ function SignupForm() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
+                className="h-11"
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -148,19 +149,23 @@ function SignupForm() {
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-11 w-full text-base"
+            >
               {loading ? "Creating account..." : `Sign up as ${role}`}
             </Button>
           </form>
-
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="underline">
-              Log in
-            </Link>
-          </p>
         </CardContent>
       </Card>
+
+      <p className="text-center text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link href="/login" className="font-medium text-foreground underline underline-offset-4">
+          Log in
+        </Link>
+      </p>
     </div>
   );
 }
