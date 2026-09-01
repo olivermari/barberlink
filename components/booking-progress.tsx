@@ -9,11 +9,13 @@ export function BookingProgress({
   bookingId,
   barberId,
   initialStatus,
+  initialQueueDepth,
   existingReview,
 }: {
   bookingId: string;
   barberId: string;
   initialStatus: string;
+  initialQueueDepth: number | null;
   existingReview: { rating: number; comment: string | null } | null;
 }) {
   const [status, setStatus] = useState(initialStatus);
@@ -23,6 +25,7 @@ export function BookingProgress({
       <BookingStatusTracker
         bookingId={bookingId}
         initialStatus={initialStatus}
+        initialQueueDepth={initialQueueDepth}
         onStatusChange={setStatus}
       />
 

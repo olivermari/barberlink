@@ -1,25 +1,52 @@
 import { requireProfile } from "@/lib/supabase/require-profile";
+import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
-import { NavLinks } from "@/components/nav-links";
+import { CustomerSubnav, CustomerTabbar } from "@/components/customer/customer-nav";
+import { ActiveBookingBar } from "@/components/customer/active-booking-bar";
 
-const CUSTOMER_NAV = [
-  { href: "/customer", label: "Browse" },
-  { href: "/customer/bookings", label: "My Bookings" },
-];
+const ACTIVE_STATUSES = ["queued", "pending", "accepted", "on_the_way", "in_service"];
 
 export default async function CustomerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { profile } = await requireProfile();
+  const { user, profile } = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: activeRow } = await supabase
+    .from("bookings")
+    .select("id, status, barber_id")
+    .eq("customer_id", user.id)
+    .in("status", ACTIVE_STATUSES)
+    .order("requested_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let initialBooking = null;
+  if (activeRow) {
+    const { data: barber } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", activeRow.barber_id)
+      .single();
+
+    initialBooking = {
+      id: activeRow.id,
+      status: activeRow.status,
+      barberId: activeRow.barber_id,
+      barberName: barber?.full_name ?? "Your barber",
+    };
+  }
 
   return (
     <AppShell
       role="customer"
       fullName={profile.full_name}
-      subnav={<NavLinks links={CUSTOMER_NAV} />}
+      subnav={<CustomerSubnav />}
+      tabbar={<CustomerTabbar />}
     >
+      <ActiveBookingBar customerId={user.id} initialBooking={initialBooking} />
       {children}
     </AppShell>
   );

@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 
 export function NavLinks({
   links,
+  badges,
 }: {
   links: { href: string; label: string }[];
+  badges?: Record<string, boolean>;
 }) {
   const pathname = usePathname();
 
@@ -21,13 +23,19 @@ export function NavLinks({
             key={link.href}
             href={link.href}
             className={cn(
-              "text-sm font-medium transition-colors",
+              "inline-flex items-center gap-1.5 text-sm font-medium transition-colors",
               active
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             {link.label}
+            {badges?.[link.href] && (
+              <span
+                className="size-1.5 rounded-full bg-destructive"
+                aria-label="New activity"
+              />
+            )}
           </Link>
         );
       })}

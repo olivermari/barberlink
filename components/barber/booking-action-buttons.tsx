@@ -42,10 +42,11 @@ export function BookingActionButtons({
 
   if (status === "pending") {
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-1 gap-2">
         <Button
           variant="outline"
           size="sm"
+          className="h-11 flex-1 sm:h-7 sm:flex-none"
           disabled={loading !== null}
           onClick={() => setStatus("declined", "Booking declined.")}
         >
@@ -53,6 +54,7 @@ export function BookingActionButtons({
         </Button>
         <Button
           size="sm"
+          className="h-11 flex-1 sm:h-7 sm:flex-none"
           disabled={loading !== null}
           onClick={() => setStatus("accepted", "Booking accepted.")}
         >
@@ -68,6 +70,7 @@ export function BookingActionButtons({
   return (
     <Button
       size="sm"
+      className="h-11 flex-1 sm:h-7 sm:flex-none"
       disabled={loading !== null}
       onClick={() => setStatus(next.status, `Marked as "${next.label}".`)}
     >

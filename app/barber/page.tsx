@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/supabase/require-profile";
 import { AvailabilityToggle } from "@/components/barber/availability-toggle";
 import { BookingActionButtons } from "@/components/barber/booking-action-buttons";
-import { BookingUpdatesListener } from "@/components/barber/booking-updates-listener";
 import { JobMap } from "@/components/barber/job-map-lazy";
 import { BookingChat } from "@/components/chat/booking-chat";
 import { MarkPaidButton } from "@/components/barber/mark-paid-button";
@@ -99,10 +98,6 @@ export default async function BarberDashboardPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 sm:p-6">
-      {barberProfile && (
-        <BookingUpdatesListener barberId={user.id} />
-      )}
-
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -168,7 +163,11 @@ export default async function BarberDashboardPage() {
                 barberLat={barberProfile?.current_lat}
                 barberLng={barberProfile?.current_lng}
               />
-              <div className="mt-1 flex flex-wrap gap-2">
+              {/* Fixed above the bottom tab bar (h-16) on mobile, since
+                  this is the one action a barber needs mid-job without
+                  hunting for it — inline again on desktop where there's
+                  no thumb-zone to design around. */}
+              <div className="fixed inset-x-0 bottom-16 z-30 flex gap-2 border-t bg-background px-4 py-3 shadow-[0_-4px_12px_-6px_rgba(0,0,0,0.15)] sm:static sm:z-auto sm:mt-1 sm:flex-wrap sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
                 <BookingActionButtons
                   bookingId={activeBooking.id}
                   status={activeBooking.status}

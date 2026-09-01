@@ -29,7 +29,13 @@ export function MarkPaidButton({ bookingId }: { bookingId: string }) {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={handleClick} disabled={loading}>
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-11 flex-1 sm:h-7 sm:flex-none"
+      onClick={handleClick}
+      disabled={loading}
+    >
       {loading ? "Updating..." : "Mark cash received"}
     </Button>
   );

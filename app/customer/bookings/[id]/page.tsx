@@ -38,6 +38,14 @@ export default async function BookingDetailPage({
 
   if (!booking) notFound();
 
+  let queueDepth: number | null = null;
+  if (booking.status === "queued") {
+    const { data } = await supabase.rpc("queue_depth", {
+      target_booking_id: booking.id,
+    });
+    queueDepth = data ?? null;
+  }
+
   const [{ data: barber }, { data: service }, { data: review }] =
     await Promise.all([
       supabase
@@ -84,6 +92,7 @@ export default async function BookingDetailPage({
         bookingId={booking.id}
         barberId={booking.barber_id}
         initialStatus={booking.status}
+        initialQueueDepth={queueDepth}
         existingReview={review}
       />
 

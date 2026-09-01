@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { roleHomePath, type UserRole } from "@/lib/role-path";
 import { SignOutButton } from "@/components/sign-out-button";
+import { cn } from "@/lib/utils";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   customer: "Customer",
@@ -12,11 +13,16 @@ export function AppShell({
   role,
   fullName,
   subnav,
+  tabbar,
   children,
 }: {
   role: UserRole;
   fullName: string | null;
+  // Desktop top bar (text links, hidden below `sm`).
   subnav?: React.ReactNode;
+  // Mobile bottom tab bar (hidden at `sm` and up) — this is the
+  // primary nav on the phone-in-hand roles (customer, barber).
+  tabbar?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -39,11 +45,19 @@ export function AppShell({
         </div>
       </header>
       {subnav && (
-        <nav className="flex items-center gap-4 border-b px-4 py-2 sm:px-6">
+        <nav
+          className={cn(
+            "items-center gap-4 border-b px-4 py-2 sm:px-6",
+            tabbar ? "hidden sm:flex" : "flex",
+          )}
+        >
           {subnav}
         </nav>
       )}
-      <main className="flex flex-1 flex-col">{children}</main>
+      <main className={cn("flex flex-1 flex-col", tabbar && "pb-16 sm:pb-0")}>
+        {children}
+      </main>
+      {tabbar && <div className="sm:hidden">{tabbar}</div>}
     </div>
   );
 }

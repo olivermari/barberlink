@@ -27,10 +27,12 @@ const STATUS_TOAST: Record<string, string> = {
 export function BookingStatusTracker({
   bookingId,
   initialStatus,
+  initialQueueDepth = null,
   onStatusChange,
 }: {
   bookingId: string;
   initialStatus: string;
+  initialQueueDepth?: number | null;
   onStatusChange?: (status: string) => void;
 }) {
   const [status, setStatus] = useState(initialStatus);
@@ -95,12 +97,15 @@ export function BookingStatusTracker({
   }
 
   if (status === "queued") {
+    const othersWaiting = initialQueueDepth != null ? initialQueueDepth - 1 : null;
+
     return (
       <div className="rounded-lg border px-4 py-3 text-sm">
         <p className="font-medium">You&apos;re in the queue</p>
         <p className="text-muted-foreground">
-          This barber is currently busy. We&apos;ll notify you the moment
-          it&apos;s your turn.
+          {othersWaiting != null && othersWaiting > 0
+            ? `${othersWaiting} other customer${othersWaiting === 1 ? "" : "s"} waiting too — your barber serves whoever's closest next, so it isn't strictly first-come. We'll notify you the moment it's your turn.`
+            : "This barber is currently busy. We'll notify you the moment it's your turn."}
         </p>
       </div>
     );

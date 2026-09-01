@@ -1,12 +1,38 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { createContext, useContext, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
-export function BookingUpdatesListener({ barberId }: { barberId: string }) {
+const JobsBadgeContext = createContext(false);
+
+export function useJobsBadge() {
+  return useContext(JobsBadgeContext);
+}
+
+// Wraps every /barber/* route so the realtime subscription (and the
+// "new job" flag it feeds) survives tab switches — a barber sitting on
+// Earnings or Profile still needs to know a job landed. The flag clears
+// itself the moment the barber lands back on the Jobs tab.
+export function JobsBadgeProvider({
+  barberId,
+  children,
+}: {
+  barberId: string;
+  children: React.ReactNode;
+}) {
+  const [hasNewJob, setHasNewJob] = useState(false);
+  const [seenPathname, setSeenPathname] = useState<string | null>(null);
+  const pathname = usePathname();
   const router = useRouter();
+
+  // Reset-on-navigation, done during render rather than in an effect —
+  // see https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes.
+  if (pathname !== seenPathname) {
+    setSeenPathname(pathname);
+    if (pathname === "/barber") setHasNewJob(false);
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -18,8 +44,8 @@ export function BookingUpdatesListener({ barberId }: { barberId: string }) {
         data: { session },
       } = await supabase.auth.getSession();
       if (cancelled) return;
-      // Without this, the channel joins successfully but RLS silently
-      // drops every event — see components/booking-status-tracker.tsx.
+      // Without this, the channel joins fine but RLS silently drops
+      // every event — see components/booking-status-tracker.tsx.
       if (session) supabase.realtime.setAuth(session.access_token);
 
       channel = supabase
@@ -39,6 +65,7 @@ export function BookingUpdatesListener({ barberId }: { barberId: string }) {
                 ? "A new booking joined your queue."
                 : "New booking request!",
             );
+            setHasNewJob(true);
             router.refresh();
           },
         )
@@ -52,7 +79,10 @@ export function BookingUpdatesListener({ barberId }: { barberId: string }) {
           },
           (payload) => {
             const status = (payload.new as { status: string }).status;
-            if (status === "pending") toast.info("You're up — a queued booking is now pending.");
+            if (status === "pending") {
+              toast.info("You're up — a queued booking is now pending.");
+              setHasNewJob(true);
+            }
             if (status === "cancelled") toast.info("A customer cancelled their booking.");
             router.refresh();
           },
@@ -69,5 +99,9 @@ export function BookingUpdatesListener({ barberId }: { barberId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barberId]);
 
-  return null;
+  return (
+    <JobsBadgeContext.Provider value={hasNewJob}>
+      {children}
+    </JobsBadgeContext.Provider>
+  );
 }
