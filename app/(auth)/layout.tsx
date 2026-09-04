@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/brand/logo";
 
 // Scoped dark treatment for the auth screens only — applying the
 // app's existing `.dark` tokens (already defined in globals.css,
@@ -10,11 +11,8 @@ export default function AuthLayout({
 }) {
   return (
     <div className="dark flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4 py-12">
-      <Link
-        href="/"
-        className="text-2xl font-black tracking-tight text-foreground"
-      >
-        Barbero2Go
+      <Link href="/" className="text-foreground">
+        <Logo size="lg" />
       </Link>
       {children}
     </div>

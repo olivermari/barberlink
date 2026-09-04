@@ -1,18 +1,14 @@
 import Link from "next/link";
-import { Archivo, Instrument_Serif } from "next/font/google";
+import Image from "next/image";
+import { Instrument_Serif } from "next/font/google";
 import { ArrowRightIcon, MapPinIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/brand/logo";
 import { PhotoPlaceholder } from "@/components/landing/photo-placeholder";
 
-// Scoped to this page only — the rest of the app stays on Geist Sans
-// and the shared grayscale tokens (app/globals.css) until Phase 9
-// (visual design system) formally picks a palette.
-const archivo = Archivo({
-  subsets: ["latin"],
-  weight: ["800", "900"],
-  variable: "--font-archivo",
-});
-
+// Archivo (the brand face) now loads in the root layout so the
+// wordmark is identical app-wide. This serif is the landing page's own
+// accent — nothing else in the app uses it.
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
@@ -52,7 +48,7 @@ const PAYMENT_TABLE = [
 export default function Home() {
   return (
     <div
-      className={`${archivo.variable} ${instrumentSerif.variable} min-h-screen bg-[var(--lp-bg)] text-[var(--lp-ink)]`}
+      className={`${instrumentSerif.variable} min-h-screen bg-[var(--lp-bg)] text-[var(--lp-ink)]`}
       style={
         {
           "--lp-bg": "#f2eee4",
@@ -60,84 +56,101 @@ export default function Home() {
           "--lp-ink": "#16130f",
           "--lp-ink-soft": "#5b564c",
           "--lp-line": "#ddd5c2",
+          // The logo's knockout follows the page ground, not the app's
+          // `--background` token, since this page paints its own cream.
+          "--logo-ground": "#f2eee4",
         } as React.CSSProperties
       }
     >
-      <header className="flex items-center justify-between gap-4 border-b border-[var(--lp-line)] px-4 py-4 sm:px-8">
-        <span
-          className={`${headline} text-lg leading-none normal-case tracking-tight`}
-        >
-          Barbero2Go
-        </span>
-        <div className="hidden items-center gap-1.5 text-xs text-[var(--lp-ink-soft)] sm:flex">
-          <MapPinIcon className="size-3.5" aria-hidden="true" />
-          Lipa City
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            className="h-10 px-3 text-[var(--lp-ink)] hover:bg-[var(--lp-bg-2)]"
-            nativeButton={false}
-            render={<Link href="/login" />}
-          >
-            Log in
-          </Button>
-          <Button
-            className="h-10 rounded-full bg-[var(--lp-ink)] px-4 text-[var(--lp-bg)] hover:bg-[var(--lp-ink)]/85"
-            nativeButton={false}
-            render={<Link href="/signup" />}
-          >
-            Sign up
-          </Button>
-        </div>
-      </header>
+      {/* Hero — full-bleed photo behind a dark tint, nav floating
+          transparently on top, matching crispmtl.com's hero treatment.
+          The intent-picker itself is borrowed from
+          getsquire.com/find-a-barber's "why are you looking for a
+          barber" flow — restyled as solid/glass blocks so the pills
+          stay legible over the photo instead of fighting it. */}
+      <section className="relative flex min-h-[85vh] flex-col overflow-hidden sm:min-h-[92vh]">
+        <Image
+          src="/images/hero-barber.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-[40%_25%]"
+        />
+        <div className="absolute inset-0 bg-[var(--lp-ink)]/60" />
 
-      {/* Hero — the intent-picker is the primary interaction, borrowed
-          from getsquire.com/find-a-barber's "why are you looking for a
-          barber" flow. Kept photo-free on purpose: both references keep
-          their CTA area typographically clean rather than fighting a
-          background image. */}
-      <section className="mx-auto flex max-w-4xl flex-col items-center gap-8 px-4 py-20 text-center sm:px-8 sm:py-28">
-        <p className={`${eyebrow} text-lg sm:text-xl`}>
-          Same-day · Lipa City
-        </p>
-        <h1 className={`${headline} text-4xl sm:text-6xl md:text-7xl`}>
-          What do you need today?
-        </h1>
-        <p className="max-w-lg text-balance text-base text-[var(--lp-ink-soft)] sm:text-lg">
-          Tell us what you&apos;re after — we&apos;ll get you to the right
-          barber, no appointment required.
-        </p>
-
-        <div className="flex w-full max-w-md flex-col gap-3">
-          {BOOK_PILLS.map((pill, i) => (
+        <header className="relative z-10 flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
+          {/* On the photo the knockout can't match the ground, so the
+              scissors are cut in ink against the cream pin. */}
+          <Logo
+            size="md"
+            className="text-[var(--lp-bg)]"
+            style={{ "--logo-ground": "#16130f" } as React.CSSProperties}
+          />
+          <div className="hidden items-center gap-1.5 text-xs text-[var(--lp-bg)]/80 sm:flex">
+            <MapPinIcon className="size-3.5" aria-hidden="true" />
+            Lipa City
+          </div>
+          <div className="flex items-center gap-2">
             <Button
-              key={pill.label}
-              size="lg"
-              variant={i === 0 ? undefined : "outline"}
-              className={
-                i === 0
-                  ? "h-14 w-full justify-between rounded-full bg-[var(--lp-ink)] px-6 text-base font-semibold text-[var(--lp-bg)] hover:bg-[var(--lp-ink)]/85"
-                  : "h-14 w-full justify-between rounded-full border-[var(--lp-ink)]/25 bg-transparent px-6 text-base font-semibold text-[var(--lp-ink)] hover:bg-[var(--lp-bg-2)]"
-              }
+              variant="ghost"
+              className="h-10 px-3 text-[var(--lp-bg)] hover:bg-[var(--lp-bg)]/15 hover:text-[var(--lp-bg)]"
               nativeButton={false}
-              render={<Link href={pill.href} />}
+              render={<Link href="/login" />}
             >
-              {pill.label}
-              <ArrowRightIcon className="size-4 shrink-0" aria-hidden="true" />
+              Log in
             </Button>
-          ))}
-        </div>
+            <Button
+              className="h-10 rounded-full bg-[var(--lp-bg)] px-4 text-[var(--lp-ink)] hover:bg-[var(--lp-bg)]/85"
+              nativeButton={false}
+              render={<Link href="/signup" />}
+            >
+              Sign up
+            </Button>
+          </div>
+        </header>
 
-        <p className="text-sm text-[var(--lp-ink-soft)]">
-          Already booked before?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-[var(--lp-ink)] underline underline-offset-4"
-          >
-            Log in
-          </Link>
-        </p>
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-8 px-4 py-12 text-center sm:px-8">
+          <p className={`${eyebrow} text-lg text-[var(--lp-bg)]/85 sm:text-xl`}>
+            Same-day · Lipa City
+          </p>
+          <h1 className={`${headline} text-4xl text-[var(--lp-bg)] sm:w-full sm:text-justify sm:text-6xl md:text-7xl`}>
+            Tired of going to barbershops?
+          </h1>
+          <p className="max-w-lg text-balance text-base text-[var(--lp-bg)]/80 sm:text-lg">
+            Tell us what you&apos;re after — we&apos;ll get you to the right
+            barber, no appointment required.
+          </p>
+
+          <div className="flex w-full max-w-md flex-col gap-3">
+            {BOOK_PILLS.map((pill, i) => (
+              <Button
+                key={pill.label}
+                size="lg"
+                className={
+                  i === 0
+                    ? "h-14 w-full justify-between rounded-full bg-[var(--lp-bg)] px-6 text-base font-semibold text-[var(--lp-ink)] hover:bg-[var(--lp-bg)]/90"
+                    : "h-14 w-full justify-between rounded-full border border-[var(--lp-bg)]/30 bg-black/25 px-6 text-base font-semibold text-[var(--lp-bg)] backdrop-blur-sm hover:bg-black/35"
+                }
+                nativeButton={false}
+                render={<Link href={pill.href} />}
+              >
+                {pill.label}
+                <ArrowRightIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Button>
+            ))}
+          </div>
+
+          <p className="text-sm text-[var(--lp-bg)]/75">
+            Already booked before?{" "}
+            <Link
+              href="/login"
+              className="font-medium text-[var(--lp-bg)] underline underline-offset-4"
+            >
+              Log in
+            </Link>
+          </p>
+        </div>
       </section>
 
       {/* How it works */}
@@ -239,10 +252,8 @@ export default function Home() {
       <footer className="border-t border-[var(--lp-line)] px-4 py-8 sm:px-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <div>
-            <p className={`${headline} text-base normal-case leading-none`}>
-              Barbero2Go
-            </p>
-            <p className="mt-1 text-sm text-[var(--lp-ink-soft)]">
+            <Logo size="sm" />
+            <p className="mt-2 text-sm text-[var(--lp-ink-soft)]">
               Door-to-door haircuts, on demand · Lipa City
             </p>
           </div>
