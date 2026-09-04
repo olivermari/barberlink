@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { roleHomePath, type UserRole } from "@/lib/role-path";
 import { SignOutButton } from "@/components/sign-out-button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { initials } from "@/lib/initials";
 import { cn } from "@/lib/utils";
 
 const ROLE_LABEL: Record<UserRole, string> = {
@@ -12,12 +14,14 @@ const ROLE_LABEL: Record<UserRole, string> = {
 export function AppShell({
   role,
   fullName,
+  avatarUrl,
   subnav,
   tabbar,
   children,
 }: {
   role: UserRole;
   fullName: string | null;
+  avatarUrl?: string | null;
   // Desktop top bar (text links, hidden below `sm`).
   subnav?: React.ReactNode;
   // Mobile bottom tab bar (hidden at `sm` and up) — this is the
@@ -41,6 +45,10 @@ export function AppShell({
           <span className="hidden text-sm text-muted-foreground sm:inline">
             {fullName ?? ""}
           </span>
+          <Avatar size="sm">
+            {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName ?? "Profile photo"} />}
+            <AvatarFallback>{initials(fullName)}</AvatarFallback>
+          </Avatar>
           <SignOutButton />
         </div>
       </header>

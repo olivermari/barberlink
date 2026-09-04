@@ -22,6 +22,7 @@ Same-day on-demand, not future scheduling — `bookings.requested_at` defaults t
 
 - Customer: `om3893712+customer2@gmail.com` / `testpass123`
 - Barber (no barber UI yet — Phase 5): `om3893712+barber1@gmail.com` / `testpass123`
+- Admin: `om3893712+admin1@gmail.com` / `testpass123` (signed up as customer, then promoted with `update profiles set role = 'admin' where id = '...'` — signup has no admin option by design)
 
 <!-- BEGIN:nextjs-agent-rules -->
 

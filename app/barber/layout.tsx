@@ -19,6 +19,7 @@ export default async function BarberLayout({
       <AppShell
         role="barber"
         fullName={profile.full_name}
+        avatarUrl={profile.avatar_url}
         subnav={<BarberSubnav />}
         tabbar={<BarberTabbar />}
       >

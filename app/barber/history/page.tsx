@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/supabase/require-profile";
 import { MarkPaidButton } from "@/components/barber/mark-paid-button";
+import { ReportProblemDialog } from "@/components/report-problem-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -99,6 +100,9 @@ export default async function BarberHistoryPage() {
                     <MarkPaidButton bookingId={b.id} />
                   </div>
                 )}
+                <div className="mt-1">
+                  <ReportProblemDialog bookingId={b.id} raisedBy={user.id} />
+                </div>
               </CardContent>
             </Card>
           );

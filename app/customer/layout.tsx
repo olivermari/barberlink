@@ -43,6 +43,7 @@ export default async function CustomerLayout({
     <AppShell
       role="customer"
       fullName={profile.full_name}
+      avatarUrl={profile.avatar_url}
       subnav={<CustomerSubnav />}
       tabbar={<CustomerTabbar />}
     >

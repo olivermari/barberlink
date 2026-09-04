@@ -1,6 +1,6 @@
 "use client";
 
-import { CompassIcon, CalendarCheckIcon } from "lucide-react";
+import { CompassIcon, CalendarCheckIcon, UserIcon } from "lucide-react";
 import { NavLinks } from "@/components/nav-links";
 import { BottomTabBar } from "@/components/bottom-tab-bar";
 
@@ -10,6 +10,7 @@ import { BottomTabBar } from "@/components/bottom-tab-bar";
 export const CUSTOMER_NAV = [
   { href: "/customer", label: "Browse", icon: CompassIcon },
   { href: "/customer/bookings", label: "Bookings", icon: CalendarCheckIcon },
+  { href: "/customer/profile", label: "Profile", icon: UserIcon },
 ];
 
 export function CustomerSubnav() {

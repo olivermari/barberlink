@@ -9,6 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { initials } from "@/lib/initials";
 
 export default async function BarberProfilePage({
   params,
@@ -34,7 +36,7 @@ export default async function BarberProfilePage({
 
   const [{ data: profile }, { data: portfolio }, { data: services }, { data: reviews }] =
     await Promise.all([
-      supabase.from("profiles").select("full_name").eq("id", id).single(),
+      supabase.from("profiles").select("full_name, avatar_url").eq("id", id).single(),
       supabase
         .from("barber_portfolio")
         .select("id, image_url, caption")
@@ -62,19 +64,27 @@ export default async function BarberProfilePage({
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 sm:p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{profile?.full_name ?? "Barber"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {barber.years_experience
-            ? `${barber.years_experience} years experience`
-            : null}
-          {barber.base_address ? ` · ${barber.base_address}` : null}
-        </p>
-        <p className="mt-1 text-sm">
-          {barber.rating_count > 0
-            ? `★ ${barber.rating_avg.toFixed(1)} (${barber.rating_count} review${barber.rating_count === 1 ? "" : "s"})`
-            : "No ratings yet"}
-        </p>
+      <div className="flex items-center gap-4">
+        <Avatar size="lg" className="size-16">
+          {profile?.avatar_url && (
+            <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Barber"} />
+          )}
+          <AvatarFallback>{initials(profile?.full_name)}</AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className="text-2xl font-semibold">{profile?.full_name ?? "Barber"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {barber.years_experience
+              ? `${barber.years_experience} years experience`
+              : null}
+            {barber.base_address ? ` · ${barber.base_address}` : null}
+          </p>
+          <p className="mt-1 text-sm">
+            {barber.rating_count > 0
+              ? `★ ${barber.rating_avg.toFixed(1)} (${barber.rating_count} review${barber.rating_count === 1 ? "" : "s"})`
+              : "No ratings yet"}
+          </p>
+        </div>
       </div>
 
       {isQuickMatch && (

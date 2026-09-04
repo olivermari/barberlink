@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/supabase/require-profile";
 import { BookingProgress } from "@/components/booking-progress";
 import { BookingChat } from "@/components/chat/booking-chat";
+import { ReportProblemDialog } from "@/components/report-problem-dialog";
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   cod: "Cash",
@@ -101,6 +102,10 @@ export default async function BookingDetailPage({
         currentUserId={user.id}
         otherPartyLabel={barber?.full_name ?? "Barber"}
       />
+
+      {(booking.status === "completed" || booking.status === "cancelled") && (
+        <ReportProblemDialog bookingId={booking.id} raisedBy={user.id} />
+      )}
     </div>
   );
 }
