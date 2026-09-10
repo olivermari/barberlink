@@ -176,9 +176,10 @@ function BookingForm({
       .single();
 
     const feePercent = Number(feeSetting?.value ?? 10);
-    const baseFee = Math.round(service.price * feePercent) / 100;
-    const platformFee = directPick ? baseFee + CHOSEN_BARBER_SURCHARGE : baseFee;
-    const barberPayout = Math.round((service.price - baseFee) * 100) / 100;
+    // The commission applies to the whole charge, chosen-barber
+    // surcharge included — not just the service price.
+    const platformFee = Math.round(total * feePercent) / 100;
+    const barberPayout = Math.round((total - platformFee) * 100) / 100;
 
     const { data: booking, error: insertError } = await supabase
       .from("bookings")
