@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/section-label";
 
 type Message = {
   id: string;
@@ -20,10 +20,12 @@ export function BookingChat({
   bookingId,
   currentUserId,
   otherPartyLabel,
+  className,
 }: {
   bookingId: string;
   currentUserId: string;
   otherPartyLabel: string;
+  className?: string;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
@@ -49,7 +51,7 @@ export function BookingChat({
       } = await supabase.auth.getSession();
       if (cancelled) return;
       // Without this, the channel joins successfully but RLS silently
-      // drops every event — see components/booking-status-tracker.tsx.
+      // drops every event — see components/customer/booking-view.tsx.
       if (session) supabase.realtime.setAuth(session.access_token);
 
       channel = supabase
@@ -105,46 +107,48 @@ export function BookingChat({
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Chat with {otherPartyLabel}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div ref={listRef} className="flex max-h-64 flex-col gap-2 overflow-y-auto">
-          {messages.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No messages yet — confirm your service details or exact location here.
-            </p>
-          )}
-          {messages.map((m) => {
-            const mine = m.sender_id === currentUserId;
-            return (
-              <div
-                key={m.id}
-                className={cn(
-                  "max-w-[80%] rounded-lg px-3 py-1.5 text-sm",
-                  mine
-                    ? "self-end bg-foreground text-background"
-                    : "self-start bg-muted text-foreground",
-                )}
-              >
-                {m.body}
-              </div>
-            );
-          })}
-        </div>
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            placeholder="Type a message..."
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-          />
-          <Button type="submit" size="icon" disabled={sending || !draft.trim()}>
-            <SendIcon />
-            <span className="sr-only">Send</span>
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <section
+      id="chat"
+      aria-label={`Chat with ${otherPartyLabel}`}
+      className={cn(
+        "flex scroll-mt-20 flex-col gap-2.5 rounded-lg border-[1.5px] border-outline p-3.5",
+        className,
+      )}
+    >
+      <SectionLabel>Chat</SectionLabel>
+      <div ref={listRef} className="flex max-h-80 min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        {messages.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No messages yet — sort out the exact spot or any details with {otherPartyLabel} here.
+          </p>
+        )}
+        {messages.map((m) => {
+          const mine = m.sender_id === currentUserId;
+          return (
+            <div
+              key={m.id}
+              className={cn(
+                "max-w-[78%] rounded-lg px-3 py-2 text-sm",
+                mine ? "self-end bg-foreground text-background" : "self-start bg-accent text-foreground",
+              )}
+            >
+              {m.body}
+            </div>
+          );
+        })}
+      </div>
+      <form onSubmit={handleSubmit} className="mt-auto flex gap-2">
+        <Input
+          placeholder="Message…"
+          aria-label={`Message ${otherPartyLabel}`}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+        <Button type="submit" variant="ink" size="icon" disabled={sending || !draft.trim()}>
+          <SendIcon />
+          <span className="sr-only">Send</span>
+        </Button>
+      </form>
+    </section>
   );
 }

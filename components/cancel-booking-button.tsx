@@ -21,9 +21,13 @@ const CANCELLABLE_STATUSES = ["queued", "pending", "accepted", "on_the_way"];
 export function CancelBookingButton({
   bookingId,
   status,
+  label = "Cancel booking",
+  className,
 }: {
   bookingId: string;
   status: string;
+  label?: string;
+  className?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -52,8 +56,8 @@ export function CancelBookingButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        Cancel booking
+      <DialogTrigger render={<Button variant="outline" className={className} />}>
+        {label}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

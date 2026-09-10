@@ -45,7 +45,7 @@ export function JobsBadgeProvider({
       } = await supabase.auth.getSession();
       if (cancelled) return;
       // Without this, the channel joins fine but RLS silently drops
-      // every event — see components/booking-status-tracker.tsx.
+      // every event — see components/customer/booking-view.tsx.
       if (session) supabase.realtime.setAuth(session.access_token);
 
       channel = supabase

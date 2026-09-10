@@ -1,24 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/supabase/require-profile";
-import { BookingProgress } from "@/components/booking-progress";
-import { BookingChat } from "@/components/chat/booking-chat";
+import { BookingView } from "@/components/customer/booking-view";
 import { ReportProblemDialog } from "@/components/report-problem-dialog";
-
-const PAYMENT_METHOD_LABEL: Record<string, string> = {
-  cod: "Cash",
-  gcash: "GCash",
-  maya: "Maya",
-  card: "Card",
-  instapay: "InstaPay",
-};
-
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  paid: "Paid",
-  pending: "Pending",
-  failed: "Failed",
-  refunded: "Refunded",
-};
 
 export default async function BookingDetailPage({
   params,
@@ -32,80 +16,80 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, requested_at, address_text, status, price, barber_id, service_id, payment_method, payment_status",
+      "id, requested_at, address_text, address_lat, address_lng, status, price, barber_id, service_id, payment_method, payment_status",
     )
     .eq("id", id)
     .single();
 
   if (!booking) notFound();
 
-  let queueDepth: number | null = null;
-  if (booking.status === "queued") {
-    const { data } = await supabase.rpc("queue_depth", {
-      target_booking_id: booking.id,
-    });
-    queueDepth = data ?? null;
-  }
-
-  const [{ data: barber }, { data: service }, { data: review }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", booking.barber_id)
-        .single(),
-      booking.service_id
-        ? supabase
-            .from("services")
-            .select("name")
-            .eq("id", booking.service_id)
-            .single()
-        : Promise.resolve({ data: null as { name: string } | null }),
-      supabase
-        .from("reviews")
-        .select("rating, comment")
-        .eq("booking_id", booking.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: profile },
+    { data: barberProfile },
+    { data: service },
+    { data: review },
+    { data: tip },
+    { data: queueDepth },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, avatar_url, phone")
+      .eq("id", booking.barber_id)
+      .single(),
+    supabase
+      .from("barber_profiles")
+      .select("rating_avg, rating_count, current_lat, current_lng")
+      .eq("id", booking.barber_id)
+      .single(),
+    booking.service_id
+      ? supabase.from("services").select("name").eq("id", booking.service_id).single()
+      : Promise.resolve({ data: null as { name: string } | null }),
+    supabase
+      .from("reviews")
+      .select("rating, comment, tags")
+      .eq("booking_id", booking.id)
+      .maybeSingle(),
+    supabase
+      .from("tips")
+      .select("amount, status")
+      .eq("booking_id", booking.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    booking.status === "queued"
+      ? supabase.rpc("queue_depth", { target_booking_id: booking.id })
+      : Promise.resolve({ data: null as number | null }),
+  ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-4 sm:p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">
-          {service?.name ?? "Booking"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          with {barber?.full_name ?? "Barber"}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Requested {new Date(booking.requested_at).toLocaleString()}
-        </p>
-        <p className="text-sm text-muted-foreground">{booking.address_text}</p>
-        <p className="mt-1 font-medium">₱{booking.price}</p>
-        <p className="text-sm text-muted-foreground">
-          {PAYMENT_METHOD_LABEL[booking.payment_method ?? ""] ?? "Payment method not set"}
-          {" · "}
-          {PAYMENT_STATUS_LABEL[booking.payment_status] ?? booking.payment_status}
-        </p>
-      </div>
-
-      <BookingProgress
-        bookingId={booking.id}
-        barberId={booking.barber_id}
-        initialStatus={booking.status}
-        initialQueueDepth={queueDepth}
-        existingReview={review}
-      />
-
-      <BookingChat
-        bookingId={booking.id}
-        currentUserId={user.id}
-        otherPartyLabel={barber?.full_name ?? "Barber"}
-      />
-
-      {(booking.status === "completed" || booking.status === "cancelled") && (
-        <ReportProblemDialog bookingId={booking.id} raisedBy={user.id} />
-      )}
-    </div>
+    <BookingView
+      booking={{
+        id: booking.id,
+        status: booking.status,
+        price: Number(booking.price),
+        paymentMethod: booking.payment_method,
+        paymentStatus: booking.payment_status,
+        addressText: booking.address_text,
+        addressLat: booking.address_lat,
+        addressLng: booking.address_lng,
+        requestedAt: booking.requested_at,
+        serviceName: service?.name ?? "Booking",
+      }}
+      barber={{
+        id: booking.barber_id,
+        name: profile?.full_name ?? "Your barber",
+        avatarUrl: profile?.avatar_url ?? null,
+        phone: profile?.phone ?? null,
+        ratingAvg: Number(barberProfile?.rating_avg ?? 0),
+        ratingCount: barberProfile?.rating_count ?? 0,
+        lat: barberProfile?.current_lat ?? null,
+        lng: barberProfile?.current_lng ?? null,
+      }}
+      currentUserId={user.id}
+      initialQueueDepth={queueDepth ?? null}
+      review={review ? { ...review, tags: review.tags ?? [] } : null}
+      tip={tip ? { amount: Number(tip.amount), status: tip.status } : null}
+      reportSlot={<ReportProblemDialog bookingId={booking.id} raisedBy={user.id} />}
+    />
   );
 }

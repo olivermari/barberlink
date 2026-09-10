@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRightIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type ActiveBooking = {
@@ -23,9 +23,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // Lives inside the customer layout so it's mounted once and persists
-// across tab switches (Browse <-> Bookings) — the realtime subscription
+// across tab switches (Book <-> Bookings) — the realtime subscription
 // keeps it live without needing a full page reload. This is the "ambient
-// presence" piece: a customer shouldn't have to open My Bookings just to
+// presence" piece: a customer shouldn't have to open Bookings just to
 // see whether their barber is close.
 export function ActiveBookingBar({
   customerId,
@@ -34,6 +34,7 @@ export function ActiveBookingBar({
   customerId: string;
   initialBooking: ActiveBooking | null;
 }) {
+  const pathname = usePathname();
   const [booking, setBooking] = useState<ActiveBooking | null>(initialBooking);
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export function ActiveBookingBar({
       } = await supabase.auth.getSession();
       if (cancelled) return;
       // Without this, the channel joins fine but RLS silently drops
-      // every event — see components/booking-status-tracker.tsx.
+      // every event — see components/customer/booking-view.tsx.
       if (session) supabase.realtime.setAuth(session.access_token);
 
       channel = supabase
@@ -118,21 +119,29 @@ export function ActiveBookingBar({
     };
   }, [customerId]);
 
-  if (!booking) return null;
+  // The bookings list and the booking's own page already show all of this.
+  if (
+    !booking ||
+    pathname === "/customer/bookings" ||
+    pathname === `/customer/bookings/${booking.id}`
+  ) {
+    return null;
+  }
 
   return (
     <Link
       href={`/customer/bookings/${booking.id}`}
-      className="flex items-center justify-between gap-3 border-b bg-muted/50 px-4 py-2.5 text-sm transition-colors hover:bg-muted sm:px-6"
+      className="flex items-center justify-between gap-3 bg-foreground px-4 py-2.5 text-sm text-background sm:px-6"
     >
-      <span>
-        <span className="font-medium">{booking.barberName}</span>
-        {" — "}
-        <span className="text-muted-foreground">
-          {STATUS_LABEL[booking.status] ?? booking.status}
+      <span className="flex min-w-0 items-center gap-2.5">
+        <span className="size-2 shrink-0 animate-pulse rounded-full bg-primary" aria-hidden />
+        <span className="truncate">
+          <span className="font-semibold">{booking.barberName}</span>
+          {" — "}
+          <span className="opacity-75">{STATUS_LABEL[booking.status] ?? booking.status}</span>
         </span>
       </span>
-      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="shrink-0 font-semibold">Track</span>
     </Link>
   );
 }

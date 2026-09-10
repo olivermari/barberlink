@@ -71,6 +71,19 @@ export async function POST(request: Request) {
 
   if (topup) {
     await supabase.from("wallet_topups").update({ status: nextStatus }).eq("id", topup.id);
+    return NextResponse.json({ received: true });
+  }
+
+  // Tips (0016). credit_tip only books the ledger entry on the
+  // transition to paid, so a replayed event can't credit twice.
+  const { data: tip } = await supabase
+    .from("tips")
+    .select("id")
+    .eq("provider_payment_id", paymentIntentId)
+    .maybeSingle();
+
+  if (tip) {
+    await supabase.from("tips").update({ status: nextStatus }).eq("id", tip.id);
   }
 
   return NextResponse.json({ received: true });
