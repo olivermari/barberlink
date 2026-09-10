@@ -8,9 +8,9 @@ import { BottomTabBar } from "@/components/bottom-tab-bar";
 // boundary, so this list — and the icons in it — has to be built
 // client-side, not passed down as a prop from the (server) layout.
 export const CUSTOMER_NAV = [
-  { href: "/customer", label: "Browse", icon: CompassIcon },
+  { href: "/customer", label: "Book", icon: CompassIcon },
   { href: "/customer/bookings", label: "Bookings", icon: CalendarCheckIcon },
-  { href: "/customer/profile", label: "Profile", icon: UserIcon },
+  { href: "/customer/profile", label: "Account", icon: UserIcon },
 ];
 
 export function CustomerSubnav() {

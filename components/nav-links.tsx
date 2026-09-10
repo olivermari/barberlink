@@ -25,7 +25,7 @@ export function NavLinks({
             className={cn(
               "inline-flex items-center gap-1.5 text-sm font-medium transition-colors",
               active
-                ? "text-foreground"
+                ? "font-semibold text-primary"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

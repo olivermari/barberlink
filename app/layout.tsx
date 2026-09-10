@@ -1,26 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Archivo } from "next/font/google";
+import { Geist_Mono, Archivo } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-// The brand face. Loaded app-wide (not just the landing page) so the
-// wordmark is identical everywhere it appears — the app header used to
-// set it in the UI font at weight 700, which read as a different logo.
+// The brand face and the UI face in one: Archivo 400–700 for running
+// text, 900 for the wordmark, display type and big numbers — the same
+// pairing the Claude Design wireframes are drawn in.
 const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["800", "900"],
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
@@ -34,7 +29,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}

@@ -56,9 +56,6 @@ export default function Home() {
           "--lp-ink": "#16130f",
           "--lp-ink-soft": "#5b564c",
           "--lp-line": "#ddd5c2",
-          // The logo's knockout follows the page ground, not the app's
-          // `--background` token, since this page paints its own cream.
-          "--logo-ground": "#f2eee4",
         } as React.CSSProperties
       }
     >
@@ -80,13 +77,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[var(--lp-ink)]/60" />
 
         <header className="relative z-10 flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
-          {/* On the photo the knockout can't match the ground, so the
-              scissors are cut in ink against the cream pin. */}
-          <Logo
-            size="md"
-            className="text-[var(--lp-bg)]"
-            style={{ "--logo-ground": "#16130f" } as React.CSSProperties}
-          />
+          <Logo size="md" className="text-[var(--lp-bg)]" />
           <div className="hidden items-center gap-1.5 text-xs text-[var(--lp-bg)]/80 sm:flex">
             <MapPinIcon className="size-3.5" aria-hidden="true" />
             Lipa City
@@ -101,7 +92,7 @@ export default function Home() {
               Log in
             </Button>
             <Button
-              className="h-10 rounded-full bg-[var(--lp-bg)] px-4 text-[var(--lp-ink)] hover:bg-[var(--lp-bg)]/85"
+              className="h-10 rounded-full bg-primary px-4 text-primary-foreground hover:bg-primary/90"
               nativeButton={false}
               render={<Link href="/signup" />}
             >
@@ -129,7 +120,7 @@ export default function Home() {
                 size="lg"
                 className={
                   i === 0
-                    ? "h-14 w-full justify-between rounded-full bg-[var(--lp-bg)] px-6 text-base font-semibold text-[var(--lp-ink)] hover:bg-[var(--lp-bg)]/90"
+                    ? "h-14 w-full justify-between rounded-full bg-primary px-6 text-base font-bold text-primary-foreground hover:bg-primary/90"
                     : "h-14 w-full justify-between rounded-full border border-[var(--lp-bg)]/30 bg-black/25 px-6 text-base font-semibold text-[var(--lp-bg)] backdrop-blur-sm hover:bg-black/35"
                 }
                 nativeButton={false}
@@ -240,7 +231,7 @@ export default function Home() {
           </p>
           <Button
             size="lg"
-            className="h-14 rounded-full bg-[var(--lp-bg)] px-8 text-base font-semibold text-[var(--lp-ink)] hover:bg-[var(--lp-bg)]/90"
+            className="h-14 rounded-full bg-primary px-8 text-base font-bold text-primary-foreground hover:bg-primary/90"
             nativeButton={false}
             render={<Link href="/signup" />}
           >

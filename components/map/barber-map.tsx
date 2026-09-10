@@ -12,21 +12,25 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Barbers get the brand mark; the customer's own position keeps the
-// default Leaflet pin, so the two are never confused. Uses the
-// simplified cut — at marker size the full scissors close up.
+// Marker language from the wireframes: barbers are ink pins and the
+// customer's own position is a red dot — the only red on the map, so
+// "where am I" never gets confused with "who's near me".
 const BARBER_ICON = L.divIcon({
   className: "",
-  html: `<svg viewBox="0 0 100 100" width="34" height="34" style="filter: drop-shadow(0 2px 3px rgba(22,19,15,.4))">
-      <path fill="#16130f" d="M50 4C72.1 4 90 21.9 90 44c0 24.3-29.4 47.9-40 52C39.4 91.9 10 68.3 10 44 10 21.9 27.9 4 50 4Z"/>
-      <g fill="none" stroke="#f2eee4" stroke-width="11" stroke-linecap="round">
-        <path d="M38 31 L62 61"/><path d="M62 31 L38 61"/>
-      </g>
-    </svg>`,
-  iconSize: [34, 34],
-  // Anchored on the pin's point (50,96 of a 100 box), not its centre.
-  iconAnchor: [17, 33],
-  popupAnchor: [0, -30],
+  html: `<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#16130f;box-shadow:0 2px 4px rgba(22,19,15,.35)"></div>`,
+  iconSize: [26, 26],
+  // Rotating the square puts its sharp corner 18.4px below centre —
+  // anchor on that point, not on the box.
+  iconAnchor: [13, 31],
+  popupAnchor: [0, -28],
+});
+
+const YOU_ICON = L.divIcon({
+  className: "",
+  html: `<div style="box-sizing:border-box;width:20px;height:20px;border-radius:50%;background:#cf2417;border:3px solid #fff;box-shadow:0 1px 4px rgba(22,19,15,.4)"></div>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+  popupAnchor: [0, -10],
 });
 
 export type MapBarber = {
@@ -64,7 +68,7 @@ export function BarberMap({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <Recenter center={center} />
-      <Marker position={center}>
+      <Marker position={center} icon={YOU_ICON}>
         <Popup>You are here</Popup>
       </Marker>
       {barbers.map((b) => (

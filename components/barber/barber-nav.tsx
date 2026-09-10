@@ -7,8 +7,8 @@ import { useJobsBadge } from "@/components/barber/jobs-badge-provider";
 
 export const BARBER_NAV = [
   { href: "/barber", label: "Jobs", icon: BriefcaseIcon },
-  { href: "/barber/history", label: "History", icon: HistoryIcon },
   { href: "/barber/earnings", label: "Earnings", icon: WalletIcon },
+  { href: "/barber/history", label: "History", icon: HistoryIcon },
   { href: "/barber/profile", label: "Profile", icon: UserIcon },
 ];
 

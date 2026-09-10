@@ -124,7 +124,7 @@ export function BookingChat({
                 className={cn(
                   "max-w-[80%] rounded-lg px-3 py-1.5 text-sm",
                   mine
-                    ? "self-end bg-primary text-primary-foreground"
+                    ? "self-end bg-foreground text-background"
                     : "self-start bg-muted text-foreground",
                 )}
               >

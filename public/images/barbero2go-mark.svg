@@ -1,10 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 128" width="100" height="128">
   <title>Barbero2Go mark</title>
-  <path fill="#16130f" d="M50 4C72.1 4 90 21.9 90 44c0 24.3-29.4 47.9-40 52C39.4 91.9 10 68.3 10 44 10 21.9 27.9 4 50 4Z"/>
-  <g transform="rotate(-42 50 45)" fill="none" stroke="#f2eee4" stroke-width="8" stroke-linecap="round">
-    <circle cx="39" cy="21" r="6"/>
-    <circle cx="61" cy="21" r="6"/>
-    <path d="M43.2 26 L60 70"/>
-    <path d="M56.8 26 L40 70"/>
+  <g fill="#cf2417">
+    <path fill-rule="evenodd" d="M50 0a50 50 0 0 0-28.6 91C29 101.6 36.4 108.6 45.6 118.6a6 6 0 0 0 8.8 0C63.6 108.6 71 101.6 78.6 91A50 50 0 0 0 50 0zm0 15.5a34.5 34.5 0 1 1 0 69 34.5 34.5 0 0 1 0-69z"/>
+    <g transform="translate(50 50) rotate(-40) scale(0.52)">
+      <g fill="none" stroke="#cf2417" stroke-width="10" stroke-linecap="round">
+        <path d="M-9.2-14.7 16 34"/>
+        <path d="M9.2-14.7-16 34"/>
+      </g>
+      <path fill-rule="evenodd" d="M-24.5-24a10.5 10.5 0 1 0 21 0 10.5 10.5 0 1 0-21 0ZM-17.6-24a3.6 3.6 0 1 0 7.2 0 3.6 3.6 0 1 0-7.2 0Z"/>
+      <path fill-rule="evenodd" d="M3.5-24a10.5 10.5 0 1 0 21 0 10.5 10.5 0 1 0-21 0ZM10.4-24a3.6 3.6 0 1 0 7.2 0 3.6 3.6 0 1 0-7.2 0Z"/>
+    </g>
   </g>
 </svg>
