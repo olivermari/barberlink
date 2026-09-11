@@ -4,9 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export function MarkPaidButton({ bookingId }: { bookingId: string }) {
+// For cash jobs completed before 0018. Completing a cash job now marks it
+// paid by itself, so only older unpaid jobs in History still need this.
+export function MarkPaidButton({
+  bookingId,
+  className,
+}: {
+  bookingId: string;
+  className?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -24,19 +33,18 @@ export function MarkPaidButton({ bookingId }: { bookingId: string }) {
       return;
     }
 
-    toast.success("Marked as paid.");
+    toast.success("Cash received.");
     router.refresh();
   }
 
   return (
     <Button
       variant="outline"
-      size="sm"
-      className="h-11 flex-1 sm:h-7 sm:flex-none"
+      className={cn("h-12 text-[15px] font-bold", className)}
       onClick={handleClick}
       disabled={loading}
     >
-      {loading ? "Updating..." : "Mark cash received"}
+      {loading ? "Updating…" : "Mark cash received"}
     </Button>
   );
 }

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Trash2Icon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SectionLabel } from "@/components/ui/section-label";
 
 type PortfolioItem = {
   id: string;
@@ -24,7 +24,6 @@ export function PortfolioManager({
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -54,18 +53,16 @@ export function PortfolioManager({
       barber_id: barberId,
       image_url: publicUrl,
       storage_path: path,
-      caption: caption || null,
     });
 
     setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
     if (insertError) {
       toast.error(insertError.message);
       return;
     }
 
-    setCaption("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
     toast.success("Photo added.");
     router.refresh();
   }
@@ -90,56 +87,62 @@ export function PortfolioManager({
     router.refresh();
   }
 
-  return (
-    <div className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Portfolio
-      </h2>
+  const upload = () => fileInputRef.current?.click();
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Input
-          placeholder="Caption (optional)"
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          className="sm:max-w-xs"
-        />
+  return (
+    <section className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <SectionLabel>Portfolio</SectionLabel>
+        <button
+          type="button"
+          onClick={upload}
+          disabled={uploading}
+          className="text-sm font-semibold text-primary disabled:opacity-60"
+        >
+          {uploading ? "Uploading…" : "Upload"}
+        </button>
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleFileChange}
           disabled={uploading}
-          className="text-sm text-muted-foreground file:mr-2 file:h-8 file:rounded-lg file:border-0 file:bg-secondary file:px-2.5 file:text-sm file:font-medium file:text-secondary-foreground"
+          className="hidden"
         />
       </div>
-      {uploading && <p className="text-xs text-muted-foreground">Uploading...</p>}
 
       {portfolio.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No photos yet.</p>
+        <button
+          type="button"
+          onClick={upload}
+          className="flex h-24 items-center justify-center rounded-lg border-[1.5px] border-dashed border-input text-sm text-muted-foreground"
+        >
+          Add photos of your cuts — customers look at these first.
+        </button>
       ) : (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
           {portfolio.map((item) => (
-            <div key={item.id} className="group relative aspect-square">
+            <div key={item.id} className="relative aspect-square">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.image_url}
                 alt={item.caption ?? "Portfolio photo"}
-                className="size-full rounded-md object-cover"
+                className="size-full rounded-[4px] border border-input object-cover"
               />
               <Button
-                variant="destructive"
+                variant="outline"
                 size="icon-sm"
-                className="absolute top-1 right-1"
+                className="absolute top-1 right-1 bg-background/90"
                 disabled={deletingId === item.id}
                 onClick={() => handleDelete(item)}
               >
                 <Trash2Icon />
-                <span className="sr-only">Delete</span>
+                <span className="sr-only">Delete photo</span>
               </Button>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }

@@ -16,7 +16,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, requested_at, address_text, address_lat, address_lng, status, price, barber_id, service_id, payment_method, payment_status",
+      "id, requested_at, address_text, address_lat, address_lng, status, decline_reason, price, barber_id, service_id, payment_method, payment_status",
     )
     .eq("id", id)
     .single();
@@ -66,6 +66,7 @@ export default async function BookingDetailPage({
       booking={{
         id: booking.id,
         status: booking.status,
+        declineReason: booking.decline_reason ?? null,
         price: Number(booking.price),
         paymentMethod: booking.payment_method,
         paymentStatus: booking.payment_status,

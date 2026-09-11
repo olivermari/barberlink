@@ -10,6 +10,7 @@ export function AppShell({
   avatarUrl,
   subnav,
   tabbar,
+  headerExtra,
   children,
 }: {
   role: UserRole;
@@ -21,6 +22,9 @@ export function AppShell({
   // Mobile bottom tab bar (hidden at `sm` and up) — the primary nav on
   // the phone-in-hand roles (customer, barber).
   tabbar?: React.ReactNode;
+  // Status beside the avatar from `sm` up (the barber's wallet and
+  // online toggle, B6). Phones show it in the page instead.
+  headerExtra?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -40,6 +44,7 @@ export function AppShell({
               {subnav}
             </nav>
           )}
+          {headerExtra && <div className="hidden items-center gap-4 sm:flex">{headerExtra}</div>}
           <UserMenu role={role} fullName={fullName} avatarUrl={avatarUrl} />
         </div>
       </header>

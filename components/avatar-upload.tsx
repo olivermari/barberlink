@@ -12,10 +12,13 @@ export function AvatarUpload({
   userId,
   avatarUrl,
   fallback,
+  children,
 }: {
   userId: string;
   avatarUrl: string | null;
   fallback: string;
+  // Name and details shown between the photo and the button (B5 header).
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,17 +74,29 @@ export function AvatarUpload({
         {avatarUrl && <AvatarImage src={avatarUrl} alt="Profile photo" />}
         <AvatarFallback>{fallback}</AvatarFallback>
       </Avatar>
-      <div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          <CameraIcon />
-          {uploading ? "Uploading..." : "Change photo"}
-        </Button>
+      {children && <div className="min-w-0 flex-1">{children}</div>}
+      <div className="shrink-0">
+        {children ? (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="text-sm font-semibold text-primary disabled:opacity-60"
+          >
+            {uploading ? "Uploading…" : "Replace photo"}
+          </button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            <CameraIcon />
+            {uploading ? "Uploading..." : "Change photo"}
+          </Button>
+        )}
         <input
           ref={fileInputRef}
           type="file"

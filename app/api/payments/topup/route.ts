@@ -1,14 +1,22 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { createGcashPayment } from "@/lib/paymongo";
 
 const ONLINE_METHODS = ["gcash"];
+// PayMongo won't open a payment under ₱20.
+const MIN_TOPUP = 20;
+const MAX_TOPUP = 50_000;
 
 export async function POST(request: Request) {
   const { amount, method } = await request.json();
 
-  if (typeof amount !== "number" || amount <= 0) {
-    return NextResponse.json({ error: "Enter a valid top-up amount." }, { status: 400 });
+  if (typeof amount !== "number" || amount < MIN_TOPUP || amount > MAX_TOPUP) {
+    return NextResponse.json(
+      { error: `Top up between ₱${MIN_TOPUP} and ₱50,000.` },
+      { status: 400 },
+    );
   }
   if (typeof method !== "string" || !ONLINE_METHODS.includes(method)) {
     return NextResponse.json({ error: "Choose a payment method." }, { status: 400 });
@@ -23,39 +31,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
-  const { data: topup, error: insertError } = await supabase
-    .from("wallet_topups")
-    .insert({ barber_id: user.id, amount, method, status: "pending" })
-    .select("id")
-    .single();
+  const topupId = randomUUID();
+  const row = { id: topupId, barber_id: user.id, amount, method, status: "pending" };
 
-  if (insertError || !topup) {
-    return NextResponse.json(
-      { error: insertError?.message ?? "Couldn't start the top-up." },
-      { status: 500 },
-    );
-  }
+  if (!process.env.PAYMONGO_SECRET_KEY) {
+    // Simulated path (development without PayMongo keys). Barbers can't
+    // settle their own top-ups (0017 dropped that policy — it let a
+    // barber credit money that was never received), so this needs the
+    // service role, as the webhook does.
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: "Top-ups aren't set up yet." }, { status: 503 });
+    }
 
-  const secretKey = process.env.PAYMONGO_SECRET_KEY;
+    const { error: insertError } = await supabase
+      .from("wallet_topups")
+      .insert({ ...row, provider: "simulated" });
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
 
-  if (!secretKey) {
-    // Simulated path — see app/api/payments/create/route.ts for the
-    // same pattern applied to booking payments.
-    const { data: settled, error: settleError } = await supabase
+    const { error: settleError } = await createServiceRoleClient()
       .from("wallet_topups")
       .update({ status: "paid" })
-      .eq("id", topup.id)
-      .select("id")
-      .maybeSingle();
-
-    // RLS silently returns zero rows (no error) rather than failing
-    // when a policy blocks the update — check explicitly rather than
-    // trusting a null `error` to mean the write actually happened.
-    if (settleError || !settled) {
-      return NextResponse.json(
-        { error: settleError?.message ?? "Couldn't settle the top-up." },
-        { status: 500 },
-      );
+      .eq("id", topupId);
+    if (settleError) {
+      return NextResponse.json({ error: settleError.message }, { status: 500 });
     }
 
     return NextResponse.json({ simulated: true });
@@ -66,14 +66,21 @@ export async function POST(request: Request) {
   try {
     const payment = await createGcashPayment({
       amount,
-      bookingId: `topup-${topup.id}`,
+      bookingId: `topup-${topupId}`,
       returnUrl: `${origin}/barber/earnings`,
     });
 
-    await supabase
-      .from("wallet_topups")
-      .update({ provider_payment_id: payment.id })
-      .eq("id", topup.id);
+    // The intent exists before the row, so provider_payment_id goes in
+    // with the insert — barbers have no update policy on top-ups. The
+    // webhook marks it paid.
+    const { error: insertError } = await supabase.from("wallet_topups").insert({
+      ...row,
+      provider: "paymongo",
+      provider_payment_id: payment.id,
+    });
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
 
     return NextResponse.json({ checkoutUrl: payment.checkoutUrl });
   } catch (err) {

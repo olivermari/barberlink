@@ -1,14 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/supabase/require-profile";
+import { formatPeso, formatShortDate, PAYMENT_METHOD_LABEL } from "@/lib/format";
 import { MarkPaidButton } from "@/components/barber/mark-paid-button";
 import { ReportProblemDialog } from "@/components/report-problem-dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export default async function BarberHistoryPage() {
   const { user } = await requireProfile();
@@ -17,11 +12,11 @@ export default async function BarberHistoryPage() {
   const { data: bookings } = await supabase
     .from("bookings")
     .select(
-      "id, updated_at, address_text, price, customer_id, service_id, payment_method, payment_status",
+      "id, completed_at, updated_at, address_text, price, barber_payout, customer_id, service_id, payment_method, payment_status",
     )
     .eq("barber_id", user.id)
     .eq("status", "completed")
-    .order("updated_at", { ascending: false });
+    .order("completed_at", { ascending: false, nullsFirst: false });
 
   const rows = bookings ?? [];
   const customerIds = [...new Set(rows.map((b) => b.customer_id))];
@@ -52,62 +47,61 @@ export default async function BarberHistoryPage() {
   const serviceName = new Map((services ?? []).map((s) => [s.id, s.name]));
   const reviewByBooking = new Map((reviews ?? []).map((r) => [r.booking_id, r]));
 
-  const totalEarned = rows.reduce((sum, b) => sum + b.price, 0);
+  const totalEarned = rows.reduce((sum, b) => sum + Number(b.barber_payout), 0);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Service history</h1>
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-[23px] font-black">History</h1>
         <p className="text-sm text-muted-foreground">
-          {rows.length} completed · ₱{totalEarned}
+          {rows.length} done · {formatPeso(totalEarned)} earned
         </p>
       </div>
 
       {rows.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Completed services will show up here.
-        </p>
+        <p className="text-sm text-muted-foreground">Completed jobs will show up here.</p>
       )}
 
-      <div className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-2.5">
         {rows.map((b) => {
           const review = reviewByBooking.get(b.id);
+          const cashDue = b.payment_method === "cod" && b.payment_status !== "paid";
           return (
-            <Card key={b.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center justify-between text-base">
-                  {serviceName.get(b.service_id ?? "") ?? "Service"}
-                  <div className="flex items-center gap-2">
-                    <Badge variant={b.payment_status === "paid" ? "default" : "outline"}>
-                      {b.payment_status === "paid" ? "Paid" : "Unpaid"}
-                    </Badge>
-                    <Badge variant="secondary">₱{b.price}</Badge>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-1 text-sm text-muted-foreground">
-                <p>with {customerName.get(b.customer_id) ?? "Customer"}</p>
-                <p>{b.address_text}</p>
-                <p>Completed {new Date(b.updated_at).toLocaleString()}</p>
-                {review && (
-                  <p className="mt-1 text-foreground">
-                    ★ {review.rating}
-                    {review.comment && ` — "${review.comment}"`}
-                  </p>
-                )}
-                {b.payment_method === "cod" && b.payment_status !== "paid" && (
-                  <div className="mt-1">
-                    <MarkPaidButton bookingId={b.id} />
-                  </div>
-                )}
-                <div className="mt-1">
-                  <ReportProblemDialog bookingId={b.id} raisedBy={user.id} />
-                </div>
-              </CardContent>
-            </Card>
+            <li
+              key={b.id}
+              className="flex flex-col gap-2 rounded-lg border-[1.5px] border-border p-3.5"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-base font-semibold">
+                  {serviceName.get(b.service_id ?? "") ?? "Service"} ·{" "}
+                  {customerName.get(b.customer_id) ?? "Customer"}
+                </span>
+                {review ? (
+                  <span className="shrink-0 text-[13px] text-muted-foreground">
+                    ★ {Number(review.rating).toFixed(1)}
+                  </span>
+                ) : cashDue ? (
+                  <Badge variant="outline" className="h-6 shrink-0 px-2">
+                    UNPAID
+                  </Badge>
+                ) : null}
+              </div>
+              <span className="text-[13px] text-muted-foreground">
+                {formatShortDate(b.completed_at ?? b.updated_at)} · ₱{b.price} ·{" "}
+                {PAYMENT_METHOD_LABEL[b.payment_method ?? ""] ?? "—"} · you earned ₱
+                {b.barber_payout}
+              </span>
+              {review?.comment && (
+                <p className="text-sm text-ink-soft">&ldquo;{review.comment}&rdquo;</p>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {cashDue && <MarkPaidButton bookingId={b.id} className="h-9 text-sm" />}
+                <ReportProblemDialog bookingId={b.id} raisedBy={user.id} />
+              </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }

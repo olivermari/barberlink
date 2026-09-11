@@ -194,6 +194,7 @@ function BookingForm({
         platform_fee: platformFee,
         barber_payout: barberPayout,
         payment_method: paymentMethod,
+        dispatch_mode: directPick ? "chosen" : "quick",
       })
       .select("id, status")
       .single();

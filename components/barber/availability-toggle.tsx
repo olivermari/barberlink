@@ -5,28 +5,28 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { getCurrentPosition, LocationRequiredError } from "@/lib/get-current-position";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export function AvailabilityToggle({
-  barberId,
-  initialIsAvailable,
-  verified,
-}: {
-  barberId: string;
-  initialIsAvailable: boolean;
-  verified: boolean;
-}) {
+// Shared by the header pill and the B1 "Go online" card. Both follow
+// the server value after router.refresh(), so they can't disagree for
+// long.
+function useAvailability(barberId: string, serverValue: boolean) {
   const router = useRouter();
-  const [isAvailable, setIsAvailable] = useState(initialIsAvailable);
+  const [isAvailable, setIsAvailable] = useState(serverValue);
+  const [seen, setSeen] = useState(serverValue);
   const [loading, setLoading] = useState(false);
 
-  async function toggle() {
-    const next = !isAvailable;
+  if (serverValue !== seen) {
+    setSeen(serverValue);
+    setIsAvailable(serverValue);
+  }
+
+  async function setOnline(next: boolean) {
     const supabase = createClient();
+    setLoading(true);
 
     if (next) {
-      setLoading(true);
-
       // A negative balance means the barber owes the platform
       // commission from cash jobs — checked fresh, not from stale
       // page-load state, since it can change between visits.
@@ -67,52 +67,88 @@ export function AvailabilityToggle({
         .eq("id", barberId);
 
       setLoading(false);
-
       if (error) {
         toast.error(error.message);
         return;
       }
-
       setIsAvailable(true);
       toast.success("You're online.");
       router.refresh();
       return;
     }
 
-    setLoading(true);
     const { error } = await supabase
       .from("barber_profiles")
       .update({ is_available: false })
       .eq("id", barberId);
 
     setLoading(false);
-
     if (error) {
       toast.error(error.message);
       return;
     }
-
     setIsAvailable(false);
     toast.success("You're offline.");
     router.refresh();
   }
 
-  if (!verified) {
-    return (
-      <Button size="sm" disabled variant="outline">
-        Verification pending
-      </Button>
-    );
-  }
+  return { isAvailable, loading, setOnline };
+}
+
+// The ONLINE / OFFLINE pill from B1 and B6.
+export function AvailabilityToggle({
+  barberId,
+  isAvailable: serverValue,
+  className,
+}: {
+  barberId: string;
+  isAvailable: boolean;
+  className?: string;
+}) {
+  const { isAvailable, loading, setOnline } = useAvailability(barberId, serverValue);
 
   return (
-    <Button
-      size="sm"
-      variant={isAvailable ? "default" : "outline"}
-      onClick={toggle}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isAvailable}
+      aria-label="Receive jobs"
+      onClick={() => setOnline(!isAvailable)}
       disabled={loading}
+      className={cn(
+        "flex shrink-0 items-center gap-2 rounded-full border-[1.5px] py-1 pr-1 pl-3 text-[13px] font-bold tracking-wide transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60",
+        isAvailable ? "border-primary text-primary" : "border-outline text-muted-foreground",
+        className,
+      )}
     >
-      {loading ? "Updating..." : isAvailable ? "Online — go offline" : "Go online"}
+      {isAvailable ? "ONLINE" : "OFFLINE"}
+      <span
+        aria-hidden
+        className={cn(
+          "flex h-6 w-10 items-center rounded-full p-0.5 transition-colors",
+          isAvailable ? "justify-end bg-primary" : "justify-start bg-border",
+        )}
+      >
+        <span
+          className={cn("size-5 rounded-full", isAvailable ? "bg-primary-foreground" : "bg-faint")}
+        />
+      </span>
+    </button>
+  );
+}
+
+export function GoOnlineButton({
+  barberId,
+  isAvailable,
+}: {
+  barberId: string;
+  isAvailable: boolean;
+}) {
+  const { loading, setOnline } = useAvailability(barberId, isAvailable);
+
+  return (
+    <Button size="lg" className="h-12 text-base" onClick={() => setOnline(true)} disabled={loading}>
+      {loading ? "Getting your location…" : "Go online"}
     </Button>
   );
 }

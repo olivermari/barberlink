@@ -22,6 +22,8 @@ import { SectionLabel } from "@/components/ui/section-label";
 export type TrackedBooking = {
   id: string;
   status: string;
+  // 'barber' or 'timeout' (0017) once declined.
+  declineReason: string | null;
   price: number;
   paymentMethod: string | null;
   paymentStatus: string;
@@ -100,6 +102,7 @@ export function BookingView({
   reportSlot: React.ReactNode;
 }) {
   const [status, setStatus] = useState(booking.status);
+  const [declineReason, setDeclineReason] = useState(booking.declineReason);
   const [serverStatus, setServerStatus] = useState(booking.status);
   const statusRef = useRef(booking.status);
   const [barberPos, setBarberPos] = useState(
@@ -113,6 +116,7 @@ export function BookingView({
   if (booking.status !== serverStatus) {
     setServerStatus(booking.status);
     setStatus(booking.status);
+    setDeclineReason(booking.declineReason);
   }
 
   useEffect(() => {
@@ -145,12 +149,16 @@ export function BookingView({
             filter: `id=eq.${booking.id}`,
           },
           (payload) => {
-            const next = (payload.new as { status: string }).status;
-            if (statusRef.current === next) return;
-            statusRef.current = next;
-            const message = STATUS_TOAST[next];
+            const row = payload.new as { status: string; decline_reason: string | null };
+            if (statusRef.current === row.status) return;
+            statusRef.current = row.status;
+            const message =
+              row.status === "declined" && row.decline_reason === "timeout"
+                ? "Your barber didn't respond in time."
+                : STATUS_TOAST[row.status];
             if (message) toast.info(message);
-            setStatus(next);
+            setDeclineReason(row.decline_reason);
+            setStatus(row.status);
           },
         )
         // Live barber position for the map and the ETA (0016 adds
@@ -220,6 +228,7 @@ export function BookingView({
     return (
       <Finished
         status={status}
+        declineReason={declineReason}
         booking={booking}
         barber={barber}
         methodLabel={methodLabel}
@@ -361,6 +370,7 @@ function StatusStrip({ stepIndex, eta }: { stepIndex: number; eta: string | null
 
 function Finished({
   status,
+  declineReason,
   booking,
   barber,
   methodLabel,
@@ -370,6 +380,7 @@ function Finished({
   reportSlot,
 }: {
   status: string;
+  declineReason: string | null;
   booking: TrackedBooking;
   barber: TrackedBarber;
   methodLabel: string;
@@ -380,12 +391,21 @@ function Finished({
 }) {
   const completed = status === "completed";
   const declined = status === "declined";
-  const title = completed ? "All done" : declined ? "Request declined" : "Booking cancelled";
+  const timedOut = declined && declineReason === "timeout";
+  const title = completed
+    ? "All done"
+    : timedOut
+      ? "Request expired"
+      : declined
+        ? "Request declined"
+        : "Booking cancelled";
   const sub = completed
     ? `${booking.serviceName} with ${barber.name} · ${formatShortDate(booking.requestedAt)}`
-    : declined
-      ? `${barber.name} couldn't take this one. Quick Match finds the nearest free barber instead.`
-      : "Nothing's on its way. Book again whenever you're ready.";
+    : timedOut
+      ? `${barber.name} didn't respond in time. Quick Match finds the nearest free barber instead.`
+      : declined
+        ? `${barber.name} couldn't take this one. Quick Match finds the nearest free barber instead.`
+        : "Nothing's on its way. Book again whenever you're ready.";
   const paymentState =
     !completed && booking.paymentStatus !== "paid"
       ? "Not charged"

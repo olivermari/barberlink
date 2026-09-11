@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SectionLabel } from "@/components/ui/section-label";
 
 export function ProfileForm({
   barberId,
@@ -70,67 +71,98 @@ export function ProfileForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="fullName">Full name</Label>
-        <Input
-          id="fullName"
-          value={form.fullName}
-          onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-          required
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="phone">Phone</Label>
-        <Input
-          id="phone"
-          value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="bio">Bio</Label>
+        <Label
+          htmlFor="bio"
+          className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase"
+        >
+          Bio
+        </Label>
         <Textarea
           id="bio"
+          rows={3}
           value={form.bio}
           onChange={(e) => setForm({ ...form, bio: e.target.value })}
-          placeholder="Tell customers about your experience and specialties."
+          placeholder="Fades, tapers, beard work — what you're known for."
+          className="border-[1.5px] border-outline"
         />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="yearsExperience">Years of experience</Label>
-        <Input
-          id="yearsExperience"
-          type="number"
-          min={0}
-          value={form.yearsExperience}
-          onChange={(e) => setForm({ ...form, yearsExperience: e.target.value })}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="baseAddress">Base address</Label>
-        <Input
-          id="baseAddress"
-          value={form.baseAddress}
-          onChange={(e) => setForm({ ...form, baseAddress: e.target.value })}
-          placeholder="Barangay, city"
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="serviceRadiusKm">Service radius (km)</Label>
-        <Input
-          id="serviceRadiusKm"
-          type="number"
-          min={0}
-          step="0.5"
-          value={form.serviceRadiusKm}
-          onChange={(e) => setForm({ ...form, serviceRadiusKm: e.target.value })}
-        />
+        <p className="text-xs text-muted-foreground">
+          Two or three lines, shown on your public profile.
+        </p>
       </div>
 
-      <Button type="submit" disabled={loading} className="w-fit">
-        {loading ? "Saving..." : "Save profile"}
+      <div className="flex flex-col gap-3">
+        <SectionLabel>Details</SectionLabel>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field id="fullName" label="Full name">
+            <Input
+              id="fullName"
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              required
+            />
+          </Field>
+          <Field id="phone" label="Phone">
+            <Input
+              id="phone"
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            />
+          </Field>
+          <Field id="yearsExperience" label="Years of experience">
+            <Input
+              id="yearsExperience"
+              type="number"
+              min={0}
+              value={form.yearsExperience}
+              onChange={(e) => setForm({ ...form, yearsExperience: e.target.value })}
+            />
+          </Field>
+          <Field id="serviceRadiusKm" label="Service radius (km)">
+            <Input
+              id="serviceRadiusKm"
+              type="number"
+              min={0}
+              step="0.5"
+              value={form.serviceRadiusKm}
+              onChange={(e) => setForm({ ...form, serviceRadiusKm: e.target.value })}
+            />
+          </Field>
+          <Field id="baseAddress" label="Base address" className="sm:col-span-2">
+            <Input
+              id="baseAddress"
+              value={form.baseAddress}
+              onChange={(e) => setForm({ ...form, baseAddress: e.target.value })}
+              placeholder="Barangay, city"
+            />
+          </Field>
+        </div>
+      </div>
+
+      <Button type="submit" variant="outline" disabled={loading} className="self-start">
+        {loading ? "Saving…" : "Save profile"}
       </Button>
     </form>
+  );
+}
+
+function Field({
+  id,
+  label,
+  className,
+  children,
+}: {
+  id: string;
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+    </div>
   );
 }

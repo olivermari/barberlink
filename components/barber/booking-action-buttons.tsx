@@ -4,77 +4,88 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const NEXT_STATUS: Record<string, { status: string; label: string }> = {
-  accepted: { status: "on_the_way", label: "On my way" },
-  on_the_way: { status: "in_service", label: "Start service" },
-  in_service: { status: "completed", label: "Complete" },
+const NEXT_STEP: Record<string, { status: string; label: string; done: string }> = {
+  accepted: { status: "on_the_way", label: "On my way", done: "The customer knows you're on the way." },
+  on_the_way: { status: "in_service", label: "Start service", done: "Service started." },
+  in_service: { status: "completed", label: "Complete job", done: "Job complete." },
 };
 
-export function BookingActionButtons({
+// The one primary action on an active job (B3 / B6). Accept and Decline
+// live on the incoming-request card instead.
+export function NextStepButton({
   bookingId,
+  barberId,
   status,
+  cashCommission,
+  className,
 }: {
   bookingId: string;
+  barberId: string;
   status: string;
+  // Set for cash jobs: completing one settles it and draws this from the
+  // wallet (0018).
+  cashCommission?: number | null;
+  className?: string;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const next = NEXT_STEP[status];
+  if (!next) return null;
 
-  async function setStatus(next: string, successMessage: string) {
-    setLoading(next);
+  const settlesCash = next.status === "completed" && cashCommission != null;
+
+  async function advance() {
+    setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase
+    // Guarded on the current status so a customer's cancel that lands
+    // first isn't overwritten.
+    const { data, error } = await supabase
       .from("bookings")
-      .update({ status: next })
-      .eq("id", bookingId);
-    setLoading(null);
+      .update({ status: next.status })
+      .eq("id", bookingId)
+      .eq("status", status)
+      .select("id")
+      .maybeSingle();
 
     if (error) {
+      setLoading(false);
       toast.error(error.message);
       return;
     }
+    if (!data) {
+      setLoading(false);
+      toast.info("This booking changed — here's the latest.");
+      router.refresh();
+      return;
+    }
 
-    toast.success(successMessage);
+    if (settlesCash) {
+      const { data: wallet } = await supabase
+        .from("barber_profiles")
+        .select("token_balance")
+        .eq("id", barberId)
+        .single();
+      const balance = Number(wallet?.token_balance ?? 0);
+      toast.success(`Job complete — ₱${cashCommission} commission drawn from your wallet.`);
+      if (balance < 0) {
+        toast.warning(
+          `Your wallet is at ₱${balance}, so you're offline. Top up on Earnings to take new jobs.`,
+        );
+      }
+    } else {
+      toast.success(next.done);
+    }
+
+    setLoading(false);
     router.refresh();
   }
 
-  if (status === "pending") {
-    return (
-      <div className="flex flex-1 gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-11 flex-1 sm:h-7 sm:flex-none"
-          disabled={loading !== null}
-          onClick={() => setStatus("declined", "Booking declined.")}
-        >
-          {loading === "declined" ? "Declining..." : "Decline"}
-        </Button>
-        <Button
-          size="sm"
-          className="h-11 flex-1 sm:h-7 sm:flex-none"
-          disabled={loading !== null}
-          onClick={() => setStatus("accepted", "Booking accepted.")}
-        >
-          {loading === "accepted" ? "Accepting..." : "Accept"}
-        </Button>
-      </div>
-    );
-  }
-
-  const next = NEXT_STATUS[status];
-  if (!next) return null;
-
   return (
-    <Button
-      size="sm"
-      className="h-11 flex-1 sm:h-7 sm:flex-none"
-      disabled={loading !== null}
-      onClick={() => setStatus(next.status, `Marked as "${next.label}".`)}
-    >
-      {loading === next.status ? "Updating..." : next.label}
+    <Button size="lg" className={cn("h-14 text-lg", className)} onClick={advance} disabled={loading}>
+      {loading ? "Updating…" : settlesCash ? "Complete job · cash collected" : next.label}
     </Button>
   );
 }

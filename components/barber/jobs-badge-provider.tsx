@@ -60,11 +60,9 @@ export function JobsBadgeProvider({
           },
           (payload) => {
             const status = (payload.new as { status: string }).status;
-            toast.info(
-              status === "queued"
-                ? "A new booking joined your queue."
-                : "New booking request!",
-            );
+            // A pending request gets the full-screen interrupt, which the
+            // layout renders on this refresh — only queue joins need a toast.
+            if (status === "queued") toast.info("A new booking joined your queue.");
             setHasNewJob(true);
             router.refresh();
           },
@@ -78,12 +76,12 @@ export function JobsBadgeProvider({
             filter: `barber_id=eq.${barberId}`,
           },
           (payload) => {
-            const status = (payload.new as { status: string }).status;
-            if (status === "pending") {
-              toast.info("You're up — a queued booking is now pending.");
-              setHasNewJob(true);
+            const row = payload.new as { status: string; decline_reason: string | null };
+            if (row.status === "pending") setHasNewJob(true);
+            if (row.status === "cancelled") toast.info("A customer cancelled their booking.");
+            if (row.status === "declined" && row.decline_reason === "timeout") {
+              toast.info("A request expired before you answered it.");
             }
-            if (status === "cancelled") toast.info("A customer cancelled their booking.");
             router.refresh();
           },
         )
