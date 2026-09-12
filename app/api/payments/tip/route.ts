@@ -79,8 +79,9 @@ export async function POST(request: Request) {
   if (!process.env.PAYMONGO_SECRET_KEY) {
     // Simulated path (development without PayMongo keys). Customers have
     // no update policy on tips, so settling needs the service role —
-    // without it there's no honest way to mark a tip paid.
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // without it there's no honest way to mark a tip paid. Never on the
+    // live site.
+    if (process.env.VERCEL_ENV === "production" || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json({ error: "Tipping isn't set up yet." }, { status: 503 });
     }
 

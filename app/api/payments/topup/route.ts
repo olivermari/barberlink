@@ -38,8 +38,8 @@ export async function POST(request: Request) {
     // Simulated path (development without PayMongo keys). Barbers can't
     // settle their own top-ups (0017 dropped that policy — it let a
     // barber credit money that was never received), so this needs the
-    // service role, as the webhook does.
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // service role, as the webhook does. Never on the live site.
+    if (process.env.VERCEL_ENV === "production" || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json({ error: "Top-ups aren't set up yet." }, { status: 503 });
     }
 

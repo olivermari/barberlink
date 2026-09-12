@@ -247,6 +247,9 @@ export default function Home() {
             <p className="mt-2 text-sm text-[var(--lp-ink-soft)]">
               Door-to-door haircuts, on demand · Lipa City
             </p>
+            <p className="mt-1 text-xs text-[var(--lp-ink-soft)]">
+              Prototype for a feasibility study — bookings and GCash payments are simulated.
+            </p>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <Link

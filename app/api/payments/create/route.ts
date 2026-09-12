@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { createGcashPayment } from "@/lib/paymongo";
 
 const ONLINE_METHODS = ["gcash"];
@@ -44,10 +45,14 @@ export async function POST(request: Request) {
   const secretKey = process.env.PAYMONGO_SECRET_KEY;
 
   if (!secretKey) {
-    // Simulated path: no PayMongo keys configured yet. Marks the
-    // payment as settled immediately so the rest of the pipeline
-    // (token ledger crediting on completion) is fully testable without
-    // real credentials — swap this out once PAYMONGO_SECRET_KEY is set.
+    // Simulated path (local dev without PayMongo keys): marks the payment
+    // settled immediately so the rest of the pipeline stays testable.
+    // Never on the live site — a missing key there would hand out free
+    // "paid" bookings.
+    if (process.env.VERCEL_ENV === "production" || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: "Online payments aren't set up yet." }, { status: 503 });
+    }
+
     const { error: paymentError } = await supabase.from("payments").insert({
       booking_id: booking.id,
       provider: "simulated",
@@ -59,16 +64,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: paymentError.message }, { status: 500 });
     }
 
-    const { data: settled, error: bookingError } = await supabase
+    // Service role: bookings_guard (0022) doesn't let customers settle
+    // their own payment_status.
+    const { data: settled, error: bookingError } = await createServiceRoleClient()
       .from("bookings")
       .update({ payment_status: "paid" })
       .eq("id", booking.id)
       .select("id")
       .maybeSingle();
 
-    // RLS silently returns zero rows (no error) rather than failing
-    // when a policy blocks the update — check explicitly rather than
-    // trusting a null `error` to mean the write actually happened.
     if (bookingError || !settled) {
       return NextResponse.json(
         { error: bookingError?.message ?? "Couldn't mark the booking as paid." },

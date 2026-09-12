@@ -18,11 +18,17 @@ Next.js (App Router) + TypeScript + Tailwind v4 + shadcn/ui ("base-nova" style, 
 
 Same-day on-demand, not future scheduling — `bookings.requested_at` defaults to `now()`. Two paths: **Quick Match** (auto-picks the nearest free barber, no surcharge) and **Choose Your Barber** (pick from a profile, +₱50 surcharge, queues if busy). See `README.md` roadmap for build phases and what's shipped.
 
+## Deployment
+
+Production is Vercel Hobby (functions in `sin1`, next to Supabase's `ap-southeast-1`) at barbero2go.com, deployed from `main`. `vercel.json` also runs a daily cron to `/api/keep-alive` so the free Supabase project doesn't pause. The simulated-payment fallback refuses to run when `VERCEL_ENV === "production"`.
+
 ## Test accounts (this Supabase project only)
 
-- Customer: `om3893712+customer2@gmail.com` / `testpass123`
-- Barber (no barber UI yet — Phase 5): `om3893712+barber1@gmail.com` / `testpass123`
-- Admin: `om3893712+admin1@gmail.com` / `testpass123` (signed up as customer, then promoted with `update profiles set role = 'admin' where id = '...'` — signup has no admin option by design)
+Passwords aren't kept here — the repo is public and the app is live. Ask the user.
+
+- Customer: `om3893712+customer2@gmail.com`
+- Barber: `om3893712+barber1@gmail.com`
+- Admin: `om3893712+admin1@gmail.com` (signed up as customer, then promoted with `update profiles set role = 'admin' where id = '...'` — signup has no admin option by design)
 
 <!-- BEGIN:nextjs-agent-rules -->
 
