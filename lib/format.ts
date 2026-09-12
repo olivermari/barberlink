@@ -49,6 +49,35 @@ export function manilaDayStart(daysBack = 0) {
   return new Date(`${ymd}T00:00:00+08:00`).toISOString();
 }
 
+// "12m ago", "3h ago", "Yesterday", "4 days ago" — `now` is passed in
+// so server renders stay pure.
+export function formatAgo(iso: string, now: number) {
+  const minutes = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "Yesterday" : `${days} days ago`;
+}
+
+// "₱7.4k" for dashboard tiles.
+export function formatPesoCompact(amount: number) {
+  if (Math.abs(amount) < 1000) return formatPeso(Math.round(amount));
+  return `₱${(amount / 1000).toFixed(Math.abs(amount) < 10_000 ? 1 : 0)}k`;
+}
+
+// "Tambo, Lipa" from a full address — the last two parts.
+export function formatArea(address: string | null) {
+  if (!address) return "—";
+  return address
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(-2)
+    .join(", ");
+}
+
 export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   cod: "Cash",
   gcash: "GCash",

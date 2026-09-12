@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 
 const VERIFICATION_CHIP: Record<string, string> = {
   pending: "PENDING VERIFICATION",
+  needs_info: "NEEDS INFO",
   rejected: "NOT VERIFIED",
 };
 

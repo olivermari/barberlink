@@ -24,8 +24,8 @@ type ServiceArea = {
   is_active: boolean;
 };
 
-// Metro Manila-ish default so a fresh pin starts somewhere useful.
-const DEFAULT_CENTER = { lat: 14.5995, lng: 120.9842 };
+// Lipa City, the launch market, so a fresh pin starts somewhere useful.
+const DEFAULT_CENTER = { lat: 13.9411, lng: 121.1631 };
 
 export function CoverageManager({
   initialAreas,

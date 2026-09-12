@@ -10,12 +10,12 @@ export default async function AdminCoveragePage() {
     .order("name", { ascending: true });
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 sm:p-6">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 sm:p-[22px]">
       <div>
-        <h1 className="text-2xl font-semibold">Coverage</h1>
+        <h1 className="text-[25px] font-black">Coverage areas</h1>
         <p className="text-sm text-muted-foreground">
-          Named regions the platform serves. Not yet enforced against
-          bookings — this is the admin-managed list.
+          Named regions the platform serves. Not yet enforced against bookings — this is the
+          admin-managed list.
         </p>
       </div>
 

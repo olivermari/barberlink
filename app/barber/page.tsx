@@ -6,6 +6,7 @@ import { getPendingRequest } from "@/lib/barber-request";
 import { distanceKm } from "@/lib/distance";
 import { formatPeso, manilaDayStart, nowMs, PAYMENT_METHOD_LABEL } from "@/lib/format";
 import { initials } from "@/lib/initials";
+import { readSettings } from "@/lib/platform-settings";
 import { cn } from "@/lib/utils";
 import { AvailabilityToggle, GoOnlineButton } from "@/components/barber/availability-toggle";
 import { NextStepButton } from "@/components/barber/booking-action-buttons";
@@ -35,6 +36,7 @@ const JOB_STEPS = [
 const VERIFICATION_LABEL: Record<string, string> = {
   verified: "Verified",
   pending: "Verification pending",
+  needs_info: "More info needed",
   rejected: "Not verified",
 };
 
@@ -75,34 +77,40 @@ export default async function BarberJobsPage() {
   const supabase = await createClient();
   const serverNow = nowMs();
 
-  const [{ data: barber }, { data: jobRows }, { data: queuedRows }, { data: todayRows }] =
-    await Promise.all([
-      supabase
-        .from("barber_profiles")
-        .select("is_available, verification_status, current_lat, current_lng, token_balance")
-        .eq("id", user.id)
-        .single(),
-      supabase
-        .from("bookings")
-        .select(
-          "id, status, address_text, address_lat, address_lng, price, platform_fee, barber_payout, customer_id, service_id, payment_method, payment_status, accepted_at, on_the_way_at, in_service_at",
-        )
-        .eq("barber_id", user.id)
-        .in("status", JOB_STATUSES)
-        .order("requested_at", { ascending: true })
-        .limit(1),
-      supabase
-        .from("bookings")
-        .select("id, address_text, address_lat, address_lng, price, customer_id, service_id")
-        .eq("barber_id", user.id)
-        .eq("status", "queued"),
-      supabase
-        .from("bookings")
-        .select("barber_payout")
-        .eq("barber_id", user.id)
-        .eq("status", "completed")
-        .gte("completed_at", manilaDayStart()),
-    ]);
+  const [
+    { data: barber },
+    { data: jobRows },
+    { data: queuedRows },
+    { data: todayRows },
+    settings,
+  ] = await Promise.all([
+    supabase
+      .from("barber_profiles")
+      .select("is_available, verification_status, current_lat, current_lng, token_balance")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("bookings")
+      .select(
+        "id, status, address_text, address_lat, address_lng, price, platform_fee, barber_payout, customer_id, service_id, payment_method, payment_status, accepted_at, on_the_way_at, in_service_at",
+      )
+      .eq("barber_id", user.id)
+      .in("status", JOB_STATUSES)
+      .order("requested_at", { ascending: true })
+      .limit(1),
+    supabase
+      .from("bookings")
+      .select("id, address_text, address_lat, address_lng, price, customer_id, service_id")
+      .eq("barber_id", user.id)
+      .eq("status", "queued"),
+    supabase
+      .from("bookings")
+      .select("barber_payout")
+      .eq("barber_id", user.id)
+      .eq("status", "completed")
+      .gte("completed_at", manilaDayStart()),
+    readSettings(supabase),
+  ]);
 
   const position =
     barber?.current_lat != null && barber?.current_lng != null
@@ -167,6 +175,7 @@ export default async function BarberJobsPage() {
     verificationStatus,
     isAvailable,
     balance,
+    minWallet: settings.min_wallet_to_go_online,
     hasJob,
   });
 
@@ -222,6 +231,16 @@ export default async function BarberJobsPage() {
                 render={<Link href="/barber/earnings" />}
               >
                 Top up wallet
+              </Button>
+            )}
+            {status.action === "documents" && (
+              <Button
+                size="lg"
+                className="mt-1 h-12 text-base"
+                nativeButton={false}
+                render={<Link href="/barber/profile#documents" />}
+              >
+                {verificationStatus === "needs_info" ? "See what's needed" : "Upload documents"}
               </Button>
             )}
           </div>
@@ -310,7 +329,7 @@ export default async function BarberJobsPage() {
             <span
               className={cn(
                 "text-[25px] leading-tight font-black",
-                balance < 0 && "text-destructive",
+                balance < settings.min_wallet_to_go_online && "text-destructive",
               )}
             >
               {formatPeso(balance)}
@@ -476,16 +495,18 @@ function statusCard({
   verificationStatus,
   isAvailable,
   balance,
+  minWallet,
   hasJob,
 }: {
   verificationStatus: string;
   isAvailable: boolean;
   balance: number;
+  minWallet: number;
   hasJob: boolean;
 }): {
   title: string;
   body: string;
-  action: "go-online" | "top-up" | null;
+  action: "go-online" | "top-up" | "documents" | null;
   emphasis: boolean;
 } | null {
   if (verificationStatus === "rejected") {
@@ -496,18 +517,29 @@ function statusCard({
       emphasis: false,
     };
   }
+  if (verificationStatus === "needs_info") {
+    return {
+      title: "An admin needs more from you",
+      body: "See what they asked for on your profile, fix it, then send it back for review.",
+      action: "documents",
+      emphasis: true,
+    };
+  }
   if (verificationStatus !== "verified") {
     return {
       title: "Verification pending",
-      body: "You can go online once an admin approves your account. Meanwhile, finish your profile, services and portfolio.",
-      action: null,
+      body: "Upload your ID, a selfie and your permit so an admin can approve you. Meanwhile, finish your profile and portfolio.",
+      action: "documents",
       emphasis: false,
     };
   }
-  if (balance < 0) {
+  if (balance < minWallet) {
     return {
       title: "Top up to go online",
-      body: `You owe ₱${Math.abs(balance)} in commission from cash jobs, so you've been taken offline. Top up to take new jobs again.`,
+      body:
+        balance < 0
+          ? `You owe ₱${Math.abs(balance)} in commission from cash jobs, so you've been taken offline. Top up to take new jobs again.`
+          : `Your wallet needs at least ₱${minWallet} to go online. Top up to take new jobs.`,
       action: "top-up",
       emphasis: true,
     };

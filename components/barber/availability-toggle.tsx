@@ -30,16 +30,25 @@ function useAvailability(barberId: string, serverValue: boolean) {
       // A negative balance means the barber owes the platform
       // commission from cash jobs — checked fresh, not from stale
       // page-load state, since it can change between visits.
-      const { data: profile } = await supabase
-        .from("barber_profiles")
-        .select("token_balance")
-        .eq("id", barberId)
-        .single();
+      // The database enforces the same minimum (0020); checking here
+      // first gives a clearer message than the raised error.
+      const [{ data: profile }, { data: minSetting }] = await Promise.all([
+        supabase.from("barber_profiles").select("token_balance").eq("id", barberId).single(),
+        supabase
+          .from("platform_settings")
+          .select("value")
+          .eq("key", "min_wallet_to_go_online")
+          .maybeSingle(),
+      ]);
+      const balance = Number(profile?.token_balance ?? 0);
+      const minWallet = Number(minSetting?.value ?? 0) || 0;
 
-      if ((profile?.token_balance ?? 0) < 0) {
+      if (balance < minWallet) {
         setLoading(false);
         toast.error(
-          `You owe ₱${Math.abs(profile?.token_balance ?? 0)} in commission from cash jobs — top up on the Earnings page to go online again.`,
+          balance < 0
+            ? `You owe ₱${Math.abs(balance)} in commission from cash jobs — top up on the Earnings page to go online again.`
+            : `Your wallet needs at least ₱${minWallet} to go online — top up on the Earnings page.`,
         );
         return;
       }

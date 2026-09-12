@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useCuttingLocation } from "@/lib/location-store";
-import { distanceKm, MAX_MATCH_RADIUS_KM } from "@/lib/distance";
+import { distanceKm } from "@/lib/distance";
+import { useMatchRadius } from "@/lib/use-match-radius";
 import { Button } from "@/components/ui/button";
 import { LocationBar } from "@/components/customer/location-bar";
 import {
@@ -43,6 +44,7 @@ function CustomerHome() {
   const stored = useCuttingLocation();
   const { coords: gps, status } = useGeolocation();
   const coords = stored ?? gps;
+  const matchRadiusKm = useMatchRadius();
 
   const [barbers, setBarbers] = useState<LoadedBarber[] | null>(null);
   const [matching, setMatching] = useState(false);
@@ -70,7 +72,7 @@ function CustomerHome() {
         (b) =>
           b.services.length > 0 &&
           !excludeRef.current.has(b.id) &&
-          b.distanceKm <= Math.min(MAX_MATCH_RADIUS_KM, b.serviceRadiusKm),
+          b.distanceKm <= Math.min(matchRadiusKm, b.serviceRadiusKm),
       )
       .sort((a, b) => a.distanceKm - b.distanceKm);
 
@@ -213,16 +215,16 @@ function CustomerHome() {
     () =>
       (barbers ?? [])
         .map((b) => ({ ...b, distanceKm: distanceKm(coords, b) }))
-        .filter((b) => b.distanceKm <= Math.min(MAX_MATCH_RADIUS_KM, b.serviceRadiusKm))
+        .filter((b) => b.distanceKm <= Math.min(matchRadiusKm, b.serviceRadiusKm))
         .sort((a, b) => a.distanceKm - b.distanceKm),
-    [barbers, coords],
+    [barbers, coords, matchRadiusKm],
   );
 
   const expandedId = selectedId ?? nearby[0]?.id ?? null;
   const countLabel =
     barbers === null
       ? "Finding barbers near you…"
-      : `${nearby.length} barber${nearby.length === 1 ? "" : "s"} within ${MAX_MATCH_RADIUS_KM} km`;
+      : `${nearby.length} barber${nearby.length === 1 ? "" : "s"} within ${matchRadiusKm} km`;
   const fallbackLabel =
     status === "granted"
       ? "your current location"

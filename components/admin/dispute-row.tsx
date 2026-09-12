@@ -1,17 +1,7 @@
-"use client";
-
-import { useState } from "react";
-import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import Link from "next/link";
+import { formatAgo } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { DisputeActions } from "@/components/admin/dispute-actions";
 
 const CATEGORY_LABEL: Record<string, string> = {
   service_quality: "Service quality",
@@ -20,123 +10,90 @@ const CATEGORY_LABEL: Record<string, string> = {
   other: "Other",
 };
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  open: "destructive",
-  investigating: "secondary",
-  resolved: "default",
-  dismissed: "outline",
+const STATUS_LABEL: Record<string, string> = {
+  open: "OPEN",
+  investigating: "INVESTIGATING",
+  resolved: "REFUNDED",
+  dismissed: "SIDED WITH BARBER",
 };
 
 export function DisputeRow({
   disputeId,
+  bookingId,
   category,
   description,
   status,
   resolutionNotes,
   createdAt,
+  now,
   reporterName,
   barberName,
   serviceName,
   bookingPrice,
+  paymentMethod,
   bookingAddress,
 }: {
   disputeId: string;
+  bookingId: string;
   category: string | null;
   description: string | null;
   status: string;
   resolutionNotes: string | null;
   createdAt: string;
+  now: number;
   reporterName: string;
   barberName: string | null;
   serviceName: string | null;
   bookingPrice: number | null;
+  paymentMethod: string | null;
   bookingAddress: string | null;
 }) {
-  const [currentStatus, setCurrentStatus] = useState(status);
-  const [notes, setNotes] = useState(resolutionNotes ?? "");
-  const [loading, setLoading] = useState<string | null>(null);
-
-  async function updateStatus(next: string) {
-    setLoading(next);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const { error } = await supabase
-      .from("disputes")
-      .update({ status: next, resolution_notes: notes, admin_id: user?.id })
-      .eq("id", disputeId);
-
-    setLoading(null);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    setCurrentStatus(next);
-    toast.success(`Marked ${next}.`);
-  }
+  const open = status === "open" || status === "investigating";
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-base">
+    <article
+      className={cn(
+        "flex flex-col gap-2.5 rounded-lg p-4",
+        open ? "border-2 border-primary" : "border-[1.5px] border-border",
+      )}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-base font-bold">
           {CATEGORY_LABEL[category ?? ""] ?? category ?? "Report"}
-          <Badge variant={STATUS_VARIANT[currentStatus] ?? "outline"}>
-            {currentStatus}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">
-          Reported by {reporterName} · {new Date(createdAt).toLocaleDateString()}
-        </p>
-        {(serviceName || barberName || bookingPrice != null) && (
-          <p className="text-sm text-muted-foreground">
-            {serviceName ?? "Booking"}
-            {barberName && ` with ${barberName}`}
-            {bookingPrice != null && ` · ₱${bookingPrice}`}
-            {bookingAddress && ` · ${bookingAddress}`}
-          </p>
-        )}
-        <p className="text-sm">{description || "No description provided."}</p>
-
-        <div className="flex flex-col gap-2">
-          <Textarea
-            placeholder="Resolution notes (visible to admins only)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={loading !== null || currentStatus === "investigating"}
-              onClick={() => updateStatus("investigating")}
-            >
-              {loading === "investigating" ? "Saving..." : "Investigate"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={loading !== null || currentStatus === "dismissed"}
-              onClick={() => updateStatus("dismissed")}
-            >
-              {loading === "dismissed" ? "Saving..." : "Dismiss"}
-            </Button>
-            <Button
-              size="sm"
-              disabled={loading !== null || currentStatus === "resolved"}
-              onClick={() => updateStatus("resolved")}
-            >
-              {loading === "resolved" ? "Saving..." : "Resolve"}
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </h2>
+        <span
+          className={cn(
+            "shrink-0 rounded-[3px] px-2 py-1 text-[11px] font-bold",
+            open ? "border border-primary text-primary" : "border border-input text-muted-foreground",
+          )}
+        >
+          {STATUS_LABEL[status] ?? status.toUpperCase()}
+        </span>
+      </div>
+      <p className="text-[13px] text-muted-foreground">
+        Reported by {reporterName} · {formatAgo(createdAt, now)}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {serviceName ?? "Booking"}
+        {barberName && ` with ${barberName}`}
+        {bookingPrice != null && ` · ₱${bookingPrice}`}
+        {bookingAddress && ` · ${bookingAddress}`}
+        {" · "}
+        <Link
+          href={`/admin/bookings?tab=disputed&b=${bookingId}`}
+          className="font-semibold text-primary hover:underline"
+        >
+          Open booking
+        </Link>
+      </p>
+      <p className="text-sm">{description || "No description provided."}</p>
+      <DisputeActions
+        key={`${disputeId}-${status}`}
+        disputeId={disputeId}
+        status={status}
+        initialNotes={resolutionNotes}
+        paymentMethod={paymentMethod}
+      />
+    </article>
   );
 }

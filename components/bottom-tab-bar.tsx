@@ -18,6 +18,12 @@ export function BottomTabBar({
   badges?: Record<string, boolean>;
 }) {
   const pathname = usePathname();
+  // The longest matching link wins, so a section's root tab (e.g.
+  // "/customer") doesn't also light up on "/customer/bookings".
+  const activeHref = links
+    .map((link) => link.href)
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <nav
@@ -26,8 +32,7 @@ export function BottomTabBar({
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {links.map((link) => {
-        const active =
-          pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active = link.href === activeHref;
         const Icon = link.icon;
         const hasBadge = badges?.[link.href];
 

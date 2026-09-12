@@ -12,12 +12,17 @@ export function NavLinks({
   badges?: Record<string, boolean>;
 }) {
   const pathname = usePathname();
+  // Longest match wins, so "/customer" isn't also active on
+  // "/customer/bookings" (same rule as BottomTabBar).
+  const activeHref = links
+    .map((link) => link.href)
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <>
       {links.map((link) => {
-        const active =
-          pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active = link.href === activeHref;
         return (
           <Link
             key={link.href}
