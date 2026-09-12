@@ -26,10 +26,15 @@ function Frame({
           [aLat, aLng],
           [bLat, bLng],
         ]),
-        { padding: [40, 40], maxZoom: 16 },
+        // No animation: this map sits in a lg:hidden container and the
+        // layout re-renders on every router.refresh() (JobsBadgeProvider),
+        // so a pending pan animation can still be stepping when the
+        // container is hidden/torn down — Leaflet then calls
+        // getComputedStyle on a detached node and throws.
+        { padding: [40, 40], maxZoom: 16, animate: false },
       );
     } else {
-      map.setView([aLat, aLng], 15);
+      map.setView([aLat, aLng], 15, { animate: false });
     }
   }, [map, aLat, aLng, bLat, bLng]);
   return null;
