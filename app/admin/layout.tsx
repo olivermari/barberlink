@@ -2,6 +2,7 @@ import { requireProfile } from "@/lib/supabase/require-profile";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
 import { AdminSidebar, AdminTabbar } from "@/components/admin/admin-nav";
+import { AdminNotificationProvider } from "@/components/admin/admin-notification-provider";
 
 export default async function AdminLayout({
   children,
@@ -31,6 +32,7 @@ export default async function AdminLayout({
       avatarUrl={profile.avatar_url}
       tabbar={<AdminTabbar pendingCount={pendingCount ?? 0} />}
     >
+      <AdminNotificationProvider />
       <div className="flex flex-1">
         <AdminSidebar
           pendingCount={pendingCount ?? 0}

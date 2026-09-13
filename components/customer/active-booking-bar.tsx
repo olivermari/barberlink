@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { notify } from "@/lib/notifications";
 
 type ActiveBooking = {
   id: string;
@@ -26,7 +28,12 @@ const STATUS_LABEL: Record<string, string> = {
 // across tab switches (Book <-> Bookings) — the realtime subscription
 // keeps it live without needing a full page reload. This is the "ambient
 // presence" piece: a customer shouldn't have to open Bookings just to
-// see whether their barber is close.
+// see whether their barber is close. It's also the one always-mounted
+// place to fire OS notifications for status changes, chat messages, and
+// dispute resolutions — see lib/notifications.ts. booking_messages and
+// disputes are subscribed unfiltered: their own RLS already scopes
+// select to this customer's rows, so Realtime only ever delivers what
+// they're allowed to see.
 export function ActiveBookingBar({
   customerId,
   initialBooking,
@@ -42,14 +49,11 @@ export function ActiveBookingBar({
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    async function resolveBarberName(barberId: string) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", barberId)
-        .single();
-      return data?.full_name ?? "Your barber";
+    async function resolveName(id: string, fallback: string) {
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", id).single();
+      return data?.full_name ?? fallback;
     }
+    const resolveBarberName = (barberId: string) => resolveName(barberId, "Your barber");
 
     async function start() {
       const {
@@ -97,6 +101,15 @@ export function ActiveBookingBar({
           },
           (payload) => {
             const row = payload.new as { id: string; status: string; barber_id: string };
+            const label = STATUS_LABEL[row.status];
+            if (label) {
+              notify({
+                title: label,
+                url: `/customer/bookings/${row.id}`,
+                tag: `booking-${row.id}`,
+                toastFn: toast.info,
+              });
+            }
             setBooking((current) => {
               if (!ACTIVE_STATUSES.includes(row.status)) {
                 return current?.id === row.id ? null : current;
@@ -105,6 +118,46 @@ export function ActiveBookingBar({
                 return { ...current, status: row.status };
               }
               return current;
+            });
+          },
+        )
+        .on(
+          "postgres_changes",
+          // Unfiltered: booking_messages' own RLS already scopes select
+          // to this booking's customer/barber/admin, so Realtime only
+          // ever delivers messages this customer is a participant in.
+          { event: "INSERT", schema: "public", table: "booking_messages" },
+          async (payload) => {
+            const row = payload.new as { booking_id: string; sender_id: string; body: string };
+            if (row.sender_id === customerId || cancelled) return;
+            const senderName = await resolveName(row.sender_id, "Your barber");
+            if (cancelled) return;
+            notify({
+              title: `New message from ${senderName}`,
+              body: row.body,
+              url: `/customer/bookings/${row.booking_id}#chat`,
+              tag: `chat-${row.booking_id}`,
+              toastFn: toast.info,
+            });
+          },
+        )
+        .on(
+          "postgres_changes",
+          // Unfiltered: disputes_select already scopes to the raiser,
+          // the booking's barber, and admins. This table (and
+          // token_ledger, used by JobsBadgeProvider) had to be added to
+          // the supabase_realtime publication (0023) — a binding for an
+          // unpublished table silently breaks delivery for every other
+          // binding on the same channel, not just its own.
+          { event: "UPDATE", schema: "public", table: "disputes" },
+          (payload) => {
+            const row = payload.new as { booking_id: string; status: string };
+            if (row.status !== "resolved" && row.status !== "dismissed") return;
+            notify({
+              title: "Your dispute was resolved",
+              url: `/customer/bookings/${row.booking_id}`,
+              tag: `dispute-${row.booking_id}`,
+              toastFn: toast.info,
             });
           },
         )

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Archivo } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "leaflet/dist/leaflet.css";
@@ -21,6 +21,12 @@ const archivo = Archivo({
 export const metadata: Metadata = {
   title: "Barbero2Go",
   description: "Door-to-door haircuts, on demand.",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Barbero2Go" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#cf2417",
 };
 
 export default function RootLayout({

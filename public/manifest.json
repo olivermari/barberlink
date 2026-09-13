@@ -1,0 +1,17 @@
+{
+  "name": "Barbero2Go",
+  "short_name": "Barbero2Go",
+  "description": "Door-to-door haircuts, on demand.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#cf2417",
+  "icons": [
+    {
+      "src": "/images/barbero2go-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

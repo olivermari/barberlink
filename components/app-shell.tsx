@@ -2,6 +2,7 @@ import Link from "next/link";
 import { roleHomePath, type UserRole } from "@/lib/role-path";
 import { Logo } from "@/components/brand/logo";
 import { UserMenu } from "@/components/user-menu";
+import { NotificationToggle } from "@/components/notifications/notification-toggle";
 import { cn } from "@/lib/utils";
 
 export function AppShell({
@@ -45,6 +46,7 @@ export function AppShell({
             </nav>
           )}
           {headerExtra && <div className="hidden items-center gap-4 sm:flex">{headerExtra}</div>}
+          <NotificationToggle />
           <UserMenu role={role} fullName={fullName} avatarUrl={avatarUrl} />
         </div>
       </header>
