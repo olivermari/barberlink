@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { BellIcon, BellOffIcon, BellRingIcon } from "lucide-react";
-import { notificationPermission, requestNotificationPermission } from "@/lib/notifications";
+import {
+  ensurePushSubscription,
+  notificationPermission,
+  requestNotificationPermission,
+} from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 
-// Enables the OS notifications that JobsBadgeProvider / ActiveBookingBar
-// / AdminNotificationProvider fire — this is just the one-time
-// permission prompt. Renders nothing where the API doesn't exist (iOS
-// Safari outside an installed PWA).
+// Enables the push notifications the trigger-driven backend sends (see
+// supabase/migrations/0026_push_triggers.sql) — this is the one-time
+// permission prompt plus registering this device's push subscription.
+// Renders nothing where the API doesn't exist (iOS Safari outside an
+// installed PWA — installing it via the manifest unlocks this there).
 //
 // "unsupported" is the only state ever rendered on the server (window
 // doesn't exist there) and on the client's first paint, before this
@@ -21,8 +26,12 @@ export function NotificationToggle() {
   );
 
   useEffect(() => {
+    const current = notificationPermission();
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPermission(notificationPermission());
+    setPermission(current);
+    // Heals a dropped/never-stored subscription for a returning visitor
+    // who already granted permission — cheap and idempotent.
+    if (current === "granted") ensurePushSubscription();
   }, []);
 
   if (permission === "unsupported") return null;
@@ -64,6 +73,7 @@ export function NotificationToggle() {
       onClick={async () => {
         const next = await requestNotificationPermission();
         setPermission(next);
+        if (next === "granted") await ensurePushSubscription();
       }}
     >
       <BellIcon />
