@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
-import { BARBER_ICON, YOU_ICON } from "./markers";
+import { useAnimatedMarker } from "@/lib/use-animated-marker";
+import { BARBER_ICON, YOU_ICON, barberVehicleIcon } from "./markers";
 
-// Keeps both the customer's pin and the barber's live position in view,
-// re-framing whenever the barber moves.
+// Keeps both pins in view on first frame, then only re-frames later if
+// the barber's marker would actually leave the current view — holding
+// the camera still otherwise is what stops the whole map from jerking
+// on every ~20s position update; only the marker itself should move.
 function Frame({
   cLat,
   cLng,
@@ -19,20 +22,47 @@ function Frame({
   bLng: number | null;
 }) {
   const map = useMap();
+  const framedOnce = useRef(false);
+
   useEffect(() => {
-    if (bLat != null && bLng != null) {
-      map.fitBounds(
-        L.latLngBounds([
-          [cLat, cLng],
-          [bLat, bLng],
-        ]),
-        { padding: [48, 48], maxZoom: 16 },
-      );
-    } else {
-      map.setView([cLat, cLng], 15);
+    if (bLat == null || bLng == null) {
+      if (!framedOnce.current) {
+        map.setView([cLat, cLng], 15);
+        framedOnce.current = true;
+      }
+      return;
+    }
+
+    const bounds = L.latLngBounds([
+      [cLat, cLng],
+      [bLat, bLng],
+    ]);
+
+    if (!framedOnce.current) {
+      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 16, animate: false });
+      framedOnce.current = true;
+      return;
+    }
+
+    if (!map.getBounds().pad(-0.1).contains([bLat, bLng])) {
+      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 16, animate: true, duration: 0.8 });
     }
   }, [map, cLat, cLng, bLat, bLng]);
+
   return null;
+}
+
+// Glides toward each new position instead of snapping, and rotates to
+// face the direction of travel — see lib/use-animated-marker.ts. Falls
+// back to the plain stationary pin until there's a second fix to
+// compute a heading from.
+function AnimatedBarberMarker({ target }: { target: { lat: number; lng: number } }) {
+  const { position, heading } = useAnimatedMarker(target);
+  if (!position) return null;
+  // Rounded so react-leaflet isn't asked to rebuild the icon every
+  // animation frame — see barberVehicleIcon's own comment.
+  const icon = heading != null ? barberVehicleIcon(Math.round(heading / 5) * 5) : BARBER_ICON;
+  return <Marker position={[position.lat, position.lng]} icon={icon} />;
 }
 
 export function TrackingMap({
@@ -60,7 +90,7 @@ export function TrackingMap({
         bLng={barber?.lng ?? null}
       />
       <Marker position={[customer.lat, customer.lng]} icon={YOU_ICON} />
-      {barber && <Marker position={[barber.lat, barber.lng]} icon={BARBER_ICON} />}
+      {barber && <AnimatedBarberMarker target={barber} />}
     </MapContainer>
   );
 }
