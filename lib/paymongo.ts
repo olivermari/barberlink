@@ -97,7 +97,9 @@ export function verifyWebhookSignature(rawBody: string, signatureHeader: string 
     signatureHeader.split(",").map((p) => p.split("=") as [string, string]),
   );
   const timestamp = parts.t;
-  const signature = parts.li ?? parts.te;
+  // Test-mode events send "li=" empty and fill "te"; live events the
+  // reverse — so an empty string must fall through, not just undefined.
+  const signature = parts.li || parts.te;
   if (!timestamp || !signature) return false;
 
   const expected = createHmac("sha256", webhookSecret)
