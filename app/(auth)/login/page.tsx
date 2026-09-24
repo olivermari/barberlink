@@ -3,19 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { LockIcon, MailIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { roleHomePath } from "@/lib/role-path";
+import { AuthScreen } from "@/components/auth/auth-screen";
+import { AuthField, AuthPasswordField, SocialSignIn } from "@/components/auth/auth-fields";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,8 +19,19 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+    // The design says "Email or phone number"; only email sign-in is
+    // set up for this project, so say so instead of failing obscurely.
+    if (!email.includes("@")) {
+      setError("Phone number sign-in isn't available yet — use the email you signed up with.");
+      return;
+    }
+    setLoading(true);
 
     const supabase = createClient();
     const { data, error: signInError } =
@@ -60,57 +64,53 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex w-full max-w-sm flex-col gap-6">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-xl">Let&apos;s get you signed in</CardTitle>
-          <CardDescription>
-            Enter your credentials to continue.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                className="h-11"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Password</Label>
-              <PasswordInput
-                id="password"
-                className="h-11"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+    <AuthScreen
+      title="Welcome Back"
+      subtitle="Log in to your Barbero2Go account"
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-bold text-primary">
+            Sign Up
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-[13px] lg:mt-2 lg:gap-[15px]" noValidate>
+        <AuthField
+          icon={MailIcon}
+          label="Email or phone number"
+          type="text"
+          inputMode="email"
+          autoComplete="username"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <AuthPasswordField
+          icon={LockIcon}
+          label="Password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="h-11 w-full text-base"
-            >
-              {loading ? "Logging in..." : "Log in"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">
-          Sign up
+        <Link href="/forgot-password" className="self-end text-[13px] font-bold text-primary lg:text-[13.5px]">
+          Forgot password?
         </Link>
-      </p>
-    </div>
+
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" disabled={loading} className="h-[52px] w-full rounded-xl text-base font-bold lg:mt-1 lg:h-[54px]">
+          {loading ? "Logging in…" : "Log In"}
+        </Button>
+      </form>
+      <SocialSignIn />
+    </AuthScreen>
   );
 }

@@ -2,30 +2,28 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
-import { useGeolocation } from "@/lib/use-geolocation";
-import { useCuttingLocation } from "@/lib/location-store";
-import { distanceKm } from "@/lib/distance";
-import { useMatchRadius } from "@/lib/use-match-radius";
-import { Button } from "@/components/ui/button";
+import { SearchIcon, ShieldIcon, ZapIcon } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { LocationBar } from "@/components/customer/location-bar";
-import {
-  BarberCard,
-  BarberRailItem,
-  type NearbyBarber,
-} from "@/components/customer/barber-card";
+import { FiltersButton, NO_FILTERS, applyFilters, type BarberFilters } from "@/components/customer/filters-sheet";
+import { PinnedTrackCard } from "@/components/customer/pinned-track-card";
+import { Segmented, SegLink } from "@/components/customer/ui";
+import { Button } from "@/components/ui/button";
+import { nearbyBarbers, pickQuickMatch } from "@/lib/barber-match";
+import { forwardGeocode } from "@/lib/forward-geocode";
+import { setCuttingLocation, useCuttingLocation } from "@/lib/location-store";
 import { CHOSEN_BARBER_SURCHARGE } from "@/lib/pricing";
-import { BookingDialog, type BookableService } from "@/components/booking-dialog";
+import { useBarbers } from "@/lib/use-barbers";
+import { useGeolocation } from "@/lib/use-geolocation";
+import { useMatchRadius } from "@/lib/use-match-radius";
 
 const BarberMap = dynamic(
   () => import("@/components/map/barber-map").then((m) => m.BarberMap),
   { ssr: false },
 );
-
-type LoadedBarber = Omit<NearbyBarber, "distanceKm">;
-type BookingTarget = { barber: LoadedBarber; directPick: boolean };
 
 export default function CustomerHomePage() {
   return (
@@ -35,9 +33,9 @@ export default function CustomerHomePage() {
   );
 }
 
-// Wireframes C1 (mobile), C2 (barber sheet) and C7 (web): map-first,
-// with the two dispatch paths one tap apart and the +₱50 stated before
-// the tap.
+// Customer UI "Book · map discovery" (mobile) and the desktop shell's
+// map + Quick Match panel: the two dispatch paths one tap apart, with the
+// +₱50 on the card, not behind it.
 function CustomerHome() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,12 +43,25 @@ function CustomerHome() {
   const { coords: gps, status } = useGeolocation();
   const coords = stored ?? gps;
   const matchRadiusKm = useMatchRadius();
+  const { barbers } = useBarbers();
 
-  const [barbers, setBarbers] = useState<LoadedBarber[] | null>(null);
+  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<BarberFilters>(NO_FILTERS);
   const [matching, setMatching] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [target, setTarget] = useState<BookingTarget | null>(null);
+
+  const near = useMemo(
+    () => nearbyBarbers(barbers ?? [], coords, matchRadiusKm),
+    [barbers, coords, matchRadiusKm],
+  );
+  // Offline barbers stay off the map (they can't be booked) but show up,
+  // dimmed, on Choose a Barber.
+  const pins = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return applyFilters(
+      near.filter((b) => b.isAvailable && (!q || b.name.toLowerCase().includes(q))),
+      filters,
+    );
+  }, [near, query, filters]);
 
   // `?match=1` (from "Quick Match instead" / "Quick Match again") runs a
   // Quick Match as soon as barbers load; `?exclude=` skips barbers who
@@ -59,293 +70,196 @@ function CustomerHome() {
   const excludeRef = useRef(
     new Set((searchParams.get("exclude") ?? "").split(",").filter(Boolean)),
   );
-  const coordsRef = useRef(coords);
-  useEffect(() => {
-    coordsRef.current = coords;
-  }, [coords]);
 
-  async function quickMatch(list: LoadedBarber[] | null = barbers) {
-    const from = coordsRef.current;
-    const candidates = (list ?? [])
-      .map((b) => ({ ...b, distanceKm: distanceKm(from, b) }))
-      .filter(
-        (b) =>
-          b.services.length > 0 &&
-          !excludeRef.current.has(b.id) &&
-          b.distanceKm <= Math.min(matchRadiusKm, b.serviceRadiusKm),
-      )
-      .sort((a, b) => a.distanceKm - b.distanceKm);
-
-    if (candidates.length === 0) {
-      toast.error("No barbers are online near you right now.");
-      return;
-    }
-
+  function quickMatch() {
+    if (barbers === null) return;
     setMatching(true);
-    const supabase = createClient();
-    const { data, error } = await supabase.rpc("barbers_dispatch_status", {
-      target_barber_ids: candidates.map((c) => c.id),
-    });
-    setMatching(false);
-
-    if (error) {
-      toast.error("Couldn't check who's free. Try again.");
-      return;
-    }
-
-    const busy = new Set(
-      ((data ?? []) as { barber_id: string; is_busy: boolean }[])
-        .filter((r) => r.is_busy)
-        .map((r) => r.barber_id),
-    );
-    const free = candidates.find((c) => !busy.has(c.id));
-
-    if (!free) {
+    const pick = pickQuickMatch(near, excludeRef.current);
+    if (!pick) {
+      setMatching(false);
       toast.error(
-        `No one's free right now — choose a barber to join their queue (+₱${CHOSEN_BARBER_SURCHARGE}).`,
+        near.length === 0
+          ? `No barbers are online within ${matchRadiusKm} km of you right now.`
+          : "No barbers are taking bookings right now. Try again in a bit.",
       );
-      setSheetOpen(true);
       return;
     }
-
-    setTarget({ barber: free, directPick: false });
+    router.push(`/customer/book/${pick.id}?via=quick`);
   }
 
   useEffect(() => {
-    const supabase = createClient();
-    let cancelled = false;
-
-    async function load() {
-      const { data: rows } = await supabase
-        .from("barber_profiles")
-        .select(
-          "id, bio, current_lat, current_lng, service_radius_km, rating_avg, rating_count",
-        )
-        .eq("verification_status", "verified")
-        .eq("is_available", true);
-
-      const located = (rows ?? []).filter(
-        (r) => r.current_lat != null && r.current_lng != null,
-      );
-      const ids = located.map((r) => r.id);
-
-      if (ids.length === 0) {
-        if (!cancelled) setBarbers([]);
-        return;
-      }
-
-      const [{ data: profiles }, { data: dispatch }, { data: services }, { data: photos }] =
-        await Promise.all([
-          supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids),
-          supabase.rpc("barbers_dispatch_status", { target_barber_ids: ids }),
-          supabase
-            .from("services")
-            .select("id, barber_id, name, price, duration_minutes")
-            .in("barber_id", ids)
-            .eq("is_active", true)
-            .order("price", { ascending: true }),
-          supabase
-            .from("barber_portfolio")
-            .select("barber_id, image_url")
-            .in("barber_id", ids)
-            .order("created_at", { ascending: false }),
-        ]);
-
-      const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
-      const dispatchById = new Map(
-        ((dispatch ?? []) as { barber_id: string; is_busy: boolean; queued_count: number }[]).map(
-          (d) => [d.barber_id, d],
-        ),
-      );
-      const servicesById = new Map<string, BookableService[]>();
-      for (const s of services ?? []) {
-        const list = servicesById.get(s.barber_id) ?? [];
-        list.push({ id: s.id, name: s.name, price: s.price, duration_minutes: s.duration_minutes });
-        servicesById.set(s.barber_id, list);
-      }
-      const photosById = new Map<string, string[]>();
-      for (const p of photos ?? []) {
-        const list = photosById.get(p.barber_id) ?? [];
-        list.push(p.image_url);
-        photosById.set(p.barber_id, list);
-      }
-
-      const list: LoadedBarber[] = located.map((r) => {
-        const profile = profileById.get(r.id);
-        const d = dispatchById.get(r.id);
-        const barberPhotos = photosById.get(r.id) ?? [];
-        return {
-          id: r.id,
-          name: profile?.full_name ?? "Barber",
-          avatarUrl: profile?.avatar_url ?? null,
-          bio: r.bio,
-          lat: r.current_lat as number,
-          lng: r.current_lng as number,
-          serviceRadiusKm: r.service_radius_km ?? 5,
-          ratingAvg: Number(r.rating_avg ?? 0),
-          ratingCount: r.rating_count ?? 0,
-          services: servicesById.get(r.id) ?? [],
-          photos: barberPhotos.slice(0, 3),
-          photoCount: barberPhotos.length,
-          isBusy: d?.is_busy ?? false,
-          queuedCount: d?.queued_count ?? 0,
-        };
-      });
-
-      if (cancelled) return;
-      setBarbers(list);
-
-      if (autoMatchRef.current) {
-        autoMatchRef.current = false;
-        router.replace("/customer");
-        await quickMatch(list);
-      }
+    if (barbers !== null && autoMatchRef.current) {
+      autoMatchRef.current = false;
+      router.replace("/customer");
+      quickMatch();
     }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-    // Loads once on mount; quickMatch/router are stable enough for the
-    // single auto-match this effect can trigger.
+    // Runs once, when the first batch of barbers lands.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [barbers]);
 
-  const nearby: NearbyBarber[] = useMemo(
-    () =>
-      (barbers ?? [])
-        .map((b) => ({ ...b, distanceKm: distanceKm(coords, b) }))
-        .filter((b) => b.distanceKm <= Math.min(matchRadiusKm, b.serviceRadiusKm))
-        .sort((a, b) => a.distanceKm - b.distanceKm),
-    [barbers, coords, matchRadiusKm],
-  );
+  // Enter in the search box: if it names no barber, treat it as an area
+  // and move the pin there ("Search barbers or area…").
+  async function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q || pins.length > 0) return;
+    const hit = await forwardGeocode(q);
+    if (!hit) {
+      toast.error(`Couldn't find “${q}”. Try a barangay or street name.`);
+      return;
+    }
+    setCuttingLocation({ lat: hit.lat, lng: hit.lng, label: hit.label });
+    setQuery("");
+  }
 
-  const expandedId = selectedId ?? nearby[0]?.id ?? null;
-  const countLabel =
-    barbers === null
-      ? "Finding barbers near you…"
-      : `${nearby.length} barber${nearby.length === 1 ? "" : "s"} within ${matchRadiusKm} km`;
   const fallbackLabel =
     status === "granted"
       ? "your current location"
       : status === "locating"
         ? "finding your location…"
-        : "Manila (location is off)";
+        : "Lipa City (location is off)";
 
-  function chooseBarber(barber: LoadedBarber) {
-    setSheetOpen(false);
-    setTarget({ barber, directPick: true });
-  }
+  const searchField = (
+    <form onSubmit={submitSearch} className="min-w-0 flex-1">
+      <div className="flex items-center gap-[9px] rounded-[11px] border border-field bg-white px-3.5 py-3 lg:rounded-[10px] lg:py-[11px] lg:shadow-[0_4px_14px_rgba(22,19,15,0.07)]">
+        <SearchIcon className="size-[18px] shrink-0 text-foreground" aria-hidden />
+        <input
+          aria-label="Search barbers or area"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search barbers or area…"
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-faint"
+        />
+      </div>
+    </form>
+  );
 
-  const quickMatchLabel = matching ? "Finding your barber…" : "Quick Match — nearest free barber";
-  const emptyList =
-    barbers === null ? (
-      <p className="text-sm text-muted-foreground">Finding barbers near you…</p>
-    ) : nearby.length === 0 ? (
-      <p className="text-sm text-muted-foreground">
-        No barbers are online near you right now. Try again in a bit, or move your pin.
-      </p>
-    ) : null;
+  const filterBtn = (
+    <FiltersButton
+      filters={filters}
+      onChange={setFilters}
+      count={pins.length}
+      className="lg:h-auto lg:w-11 lg:rounded-[10px] lg:shadow-[0_4px_14px_rgba(22,19,15,0.07)]"
+    />
+  );
 
   return (
-    <div className="flex flex-1 flex-col sm:grid sm:min-h-0 sm:grid-cols-[400px_minmax(0,1fr)]">
-      {/* Web left rail (C7) */}
-      <aside className="hidden min-h-0 flex-col gap-3.5 overflow-y-auto border-r-[1.5px] border-outline p-5 sm:flex">
-        <LocationBar fallback={gps} fallbackLabel={fallbackLabel} className="border-[1.5px]" />
-        <Button size="lg" className="h-14 text-lg" onClick={() => quickMatch()} disabled={matching}>
-          {quickMatchLabel}
-        </Button>
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[13px] text-faint">
-            or choose one · +₱{CHOSEN_BARBER_SURCHARGE}
-          </span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-        <div className="flex flex-col gap-2.5">
-          {emptyList ??
-            nearby.map((b) => (
-              <BarberRailItem key={b.id} barber={b} onBook={() => chooseBarber(b)} />
-            ))}
-        </div>
-      </aside>
+    <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_386px] lg:gap-5 lg:px-6 lg:py-5">
+      {/* Phone header + search */}
+      <div className="flex items-center justify-between px-[18px] pt-2.5 pb-3.5 lg:hidden">
+        <Link href="/customer" className="text-foreground">
+          <Logo className="text-[18px]" />
+        </Link>
+        {filterBtn}
+      </div>
+      <div className="flex px-[18px] pb-3 lg:hidden">{searchField}</div>
 
-      {/* Map (C1 full-bleed on mobile; fills the rest on web) */}
-      <div className="relative isolate min-h-[60svh] flex-1 max-sm:[&_.leaflet-control-zoom]:hidden sm:min-h-0">
+      {/* Map */}
+      <div className="relative isolate min-h-[260px] flex-1 overflow-hidden bg-[#ece8dd] lg:min-h-0 lg:rounded-[14px] lg:border lg:border-[#e5ded0]">
         <div className="absolute inset-0 z-0">
           <BarberMap
             center={[coords.lat, coords.lng]}
-            barbers={nearby.map((b) => ({
+            barbers={pins.map((b) => ({
               id: b.id,
               fullName: b.name,
               distanceKm: b.distanceKm,
               lat: b.lat,
               lng: b.lng,
+              avatarUrl: b.avatarUrl,
             }))}
           />
         </div>
-
-        <div className="absolute inset-x-3.5 top-3.5 z-10 sm:hidden">
+        <div className="absolute inset-x-4 top-4 z-10 hidden gap-2.5 lg:flex">
+          {searchField}
+          {filterBtn}
+        </div>
+        <div className="absolute top-3 left-3 z-10 max-w-[calc(100%-1.5rem)] lg:top-[68px] lg:left-4 lg:max-w-[320px]">
           <LocationBar fallback={gps} fallbackLabel={fallbackLabel} />
-        </div>
-
-        <div className="absolute inset-x-3.5 bottom-3.5 z-10 flex flex-col gap-2.5 sm:hidden">
-          <Button size="lg" className="h-14 text-lg" onClick={() => quickMatch()} disabled={matching}>
-            {quickMatchLabel}
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-12 bg-background text-[15px]"
-            onClick={() => setSheetOpen(true)}
-          >
-            Choose your barber · +₱{CHOSEN_BARBER_SURCHARGE}
-          </Button>
-        </div>
-
-        <div className="absolute top-4 right-4 z-10 hidden rounded-md border-[1.5px] border-outline bg-background px-3.5 py-2.5 text-sm font-semibold sm:block">
-          {countLabel}
         </div>
       </div>
 
-      {/* Mobile barber sheet (C2) */}
-      {sheetOpen && (
-        <div className="fixed inset-0 z-[60] flex flex-col sm:hidden">
-          <button
-            type="button"
-            aria-label="Close barber list"
-            className="flex-1 bg-black/35"
-            onClick={() => setSheetOpen(false)}
-          />
-          <div className="flex max-h-[78svh] flex-col gap-3.5 overflow-y-auto rounded-t-[14px] border-t-[1.5px] border-outline bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-            <div className="h-1 w-11 self-center rounded-full bg-input" />
-            <p className="text-[15px] font-semibold text-muted-foreground">{countLabel}</p>
-            {emptyList ??
-              nearby.map((b) => (
-                <BarberCard
-                  key={b.id}
-                  barber={b}
-                  expanded={b.id === expandedId}
-                  onSelect={() => setSelectedId(b.id)}
-                  onBook={() => chooseBarber(b)}
-                />
-              ))}
+      {/* Phone: the two ways to book */}
+      <div className="flex flex-col gap-[11px] bg-white px-[18px] pt-3.5 lg:hidden">
+        <div className="flex flex-col gap-[11px] rounded-[14px] border border-line p-[15px] shadow-[0_-6px_20px_rgba(22,19,15,0.04)]">
+          <div className="flex items-center gap-2.5">
+            <ZapIcon className="size-5 shrink-0 text-primary" aria-hidden />
+            <div className="flex flex-1 flex-col gap-0.5">
+              <span className="text-[15px] font-bold">Quick Match</span>
+              <span className="text-[13px] leading-[1.45] text-[#6a635a]">
+                Nearest available barber. If everyone&apos;s busy, we&apos;ll put you in a queue.
+              </span>
+            </div>
+            <span className="text-[17px] text-[#a49c90]" aria-hidden>
+              ›
+            </span>
           </div>
+          <Button className="h-[50px] w-full rounded-[10px] text-[15px] font-bold" onClick={quickMatch} disabled={matching || barbers === null}>
+            {matching ? "Finding your barber…" : "Find Nearest Available"}
+          </Button>
         </div>
-      )}
+        <Link
+          href="/customer/barbers"
+          className="flex items-center gap-2.5 rounded-[14px] border border-line p-3.5 transition-colors hover:bg-wash"
+        >
+          <ShieldIcon className="size-5 shrink-0" aria-hidden />
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-[15px] font-bold">Or choose a barber · +₱{CHOSEN_BARBER_SURCHARGE}</span>
+            <span className="text-[13px] leading-[1.45] text-[#6a635a]">
+              Browse barbers, check ratings, and pick your preferred one.
+            </span>
+          </span>
+          <span className="text-[17px] text-[#a49c90]" aria-hidden>
+            ›
+          </span>
+        </Link>
+      </div>
 
-      {target && (
-        <BookingDialog
-          key={`${target.barber.id}-${target.directPick}`}
-          open
-          onOpenChange={(open) => {
-            if (!open) setTarget(null);
-          }}
-          barber={{ id: target.barber.id, name: target.barber.name }}
-          services={target.barber.services}
-          directPick={target.directPick}
-        />
-      )}
+      {/* Desktop: right panel */}
+      <div className="hidden min-h-0 min-w-0 flex-col gap-3.5 lg:flex">
+        <Segmented>
+          <SegLink href="/customer" active className="rounded-lg p-[11px] font-bold">
+            Quick Match
+          </SegLink>
+          <SegLink href="/customer/barbers" className="rounded-lg p-[11px]">
+            Choose a Barber
+          </SegLink>
+        </Segmented>
+        <div className="flex flex-col gap-[11px] rounded-[14px] border border-[#e5ded0] p-[18px]">
+          <div className="flex items-center gap-2.5">
+            <ZapIcon className="size-5 text-primary" aria-hidden />
+            <span className="text-base font-bold">Quick Match</span>
+          </div>
+          <p className="text-sm leading-[1.55] text-[#4c463d]">
+            Find the nearest available barber. If everyone&apos;s busy, we&apos;ll put you in a queue.
+          </p>
+          <Button className="h-[47px] w-full rounded-[10px] text-[15px] font-bold" onClick={quickMatch} disabled={matching || barbers === null}>
+            {matching ? "Finding your barber…" : "Find Nearest Available"}
+          </Button>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-[#eae3d5]" />
+          <span className="text-xs font-semibold tracking-[0.1em] text-faint">OR</span>
+          <div className="h-px flex-1 bg-[#eae3d5]" />
+        </div>
+        <div className="flex flex-col gap-[11px] rounded-[14px] border border-[#e5ded0] p-[18px]">
+          <div className="flex items-center gap-2.5">
+            <ShieldIcon className="size-5" aria-hidden />
+            <span className="text-base font-bold">Choose a Barber</span>
+          </div>
+          <p className="text-sm leading-[1.55] text-[#4c463d]">
+            Browse barbers, check ratings, and pick your preferred one. Adds ₱{CHOSEN_BARBER_SURCHARGE}.
+          </p>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/customer/barbers" />}
+            className="h-[46px] w-full rounded-[10px] border border-foreground text-[15px] font-bold"
+          >
+            View Barbers
+          </Button>
+        </div>
+        <PinnedTrackCard />
+      </div>
     </div>
   );
 }

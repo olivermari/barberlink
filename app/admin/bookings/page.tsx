@@ -316,9 +316,14 @@ export default async function AdminBookingsPage({
             <SectionLabel>Pricing & policy</SectionLabel>
             <dl className="flex flex-col gap-2.5 rounded-lg border-[1.5px] border-outline bg-background p-3.5 text-sm">
               {[
-                ["Platform commission", "Of each booking's total", `${settings.fee_percentage}%`],
+                ["Platform commission", "Of the price, not the distance fee", `${settings.fee_percentage}%`],
                 ["Choose-your-barber fee", "Added at booking", formatPeso(CHOSEN_BARBER_SURCHARGE)],
                 ["Max match radius", "Quick Match ceiling", `${settings.max_match_radius_km} km`],
+                [
+                  "Distance fee",
+                  `Per km beyond ${settings.distance_free_km} km, barber keeps it`,
+                  formatPeso(settings.distance_fee_per_km),
+                ],
                 ["Min wallet to go online", "Blocks lower balances", formatPeso(settings.min_wallet_to_go_online)],
               ].map(([label, hint, value]) => (
                 <div key={label} className="flex items-baseline justify-between gap-3">

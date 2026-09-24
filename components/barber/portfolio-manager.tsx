@@ -5,8 +5,18 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2Icon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { Button } from "@/components/ui/button";
-import { SectionLabel } from "@/components/ui/section-label";
+import { Caption } from "@/components/customer/ui";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type PortfolioItem = {
   id: string;
@@ -26,6 +36,7 @@ export function PortfolioManager({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PortfolioItem | null>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -41,7 +52,7 @@ export function PortfolioManager({
 
     if (uploadError) {
       setUploading(false);
-      toast.error(uploadError.message);
+      toast.error(friendlyError(uploadError, "Couldn't upload that photo. Try again."));
       return;
     }
 
@@ -59,7 +70,7 @@ export function PortfolioManager({
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     if (insertError) {
-      toast.error(insertError.message);
+      toast.error(friendlyError(insertError, "Couldn't add that photo. Try again."));
       return;
     }
 
@@ -77,9 +88,10 @@ export function PortfolioManager({
 
     const { error } = await supabase.from("barber_portfolio").delete().eq("id", item.id);
     setDeletingId(null);
+    setPendingDelete(null);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't delete that photo. Try again."));
       return;
     }
 
@@ -90,16 +102,20 @@ export function PortfolioManager({
   const upload = () => fileInputRef.current?.click();
 
   return (
-    <section className="flex flex-col gap-2.5">
+    <section id="portfolio" className="flex scroll-mt-4 flex-col gap-2.5 rounded-[14px] border border-line bg-white p-3.5">
       <div className="flex items-center justify-between">
-        <SectionLabel>Portfolio</SectionLabel>
+        <Caption>Portfolio</Caption>
         <button
           type="button"
           onClick={upload}
           disabled={uploading}
-          className="text-sm font-semibold text-primary disabled:opacity-60"
+          className="-m-2.5 p-2.5 text-[13px] font-bold text-primary disabled:opacity-60"
         >
-          {uploading ? "Uploading…" : "Upload"}
+          {uploading ? "Uploading…" : (
+            <>
+              Upload<span className="max-lg:hidden"> photos</span>
+            </>
+          )}
         </button>
         <input
           ref={fileInputRef}
@@ -111,38 +127,59 @@ export function PortfolioManager({
         />
       </div>
 
-      {portfolio.length === 0 ? (
+      <div className="grid grid-cols-4 gap-2 lg:grid-cols-7 lg:gap-2.5">
+        {portfolio.map((item) => (
+          <div key={item.id} className="relative aspect-square">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.image_url}
+              alt={item.caption ?? "Portfolio photo"}
+              className="size-full rounded-lg border border-photo-border object-cover lg:rounded-[9px]"
+            />
+            <button
+              type="button"
+              aria-label="Delete photo"
+              disabled={deletingId === item.id}
+              onClick={() => setPendingDelete(item)}
+              className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-background/90 shadow-sm disabled:opacity-60"
+            >
+              <Trash2Icon className="size-3" aria-hidden />
+            </button>
+          </div>
+        ))}
         <button
           type="button"
           onClick={upload}
-          className="flex h-24 items-center justify-center rounded-lg border-[1.5px] border-dashed border-input text-sm text-muted-foreground"
+          disabled={uploading}
+          aria-label="Add a photo"
+          className="flex aspect-square items-center justify-center rounded-lg border-[1.5px] border-dashed border-line-strong text-[22px] text-[#a49c90] transition-colors hover:bg-wash disabled:opacity-60 lg:rounded-[9px] lg:text-2xl"
         >
-          Add photos of your cuts — customers look at these first.
+          +
         </button>
-      ) : (
-        <div className="grid grid-cols-3 gap-1.5">
-          {portfolio.map((item) => (
-            <div key={item.id} className="relative aspect-square">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.image_url}
-                alt={item.caption ?? "Portfolio photo"}
-                className="size-full rounded-[4px] border border-input object-cover"
-              />
-              <Button
-                variant="outline"
-                size="icon-sm"
-                className="absolute top-1 right-1 bg-background/90"
-                disabled={deletingId === item.id}
-                onClick={() => handleDelete(item)}
-              >
-                <Trash2Icon />
-                <span className="sr-only">Delete photo</span>
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
+      <span className="text-[12.5px] text-faint lg:text-[13px] lg:text-[#6a635a]">
+        <span className="lg:hidden">First three are what customers see.</span>
+        <span className="hidden lg:inline">First three photos are what customers see on your card.</span>
+      </span>
+
+      <Dialog open={pendingDelete != null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete this photo?</DialogTitle>
+            <DialogDescription>This can&apos;t be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Keep it</DialogClose>
+            <Button
+              variant="destructive"
+              disabled={deletingId != null}
+              onClick={() => pendingDelete && handleDelete(pendingDelete)}
+            >
+              {deletingId != null ? "Deleting…" : "Yes, delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

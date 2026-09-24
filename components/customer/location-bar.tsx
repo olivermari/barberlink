@@ -42,18 +42,18 @@ export function LocationBar({
     <Dialog open={open} onOpenChange={setOpen}>
       <div
         className={cn(
-          "flex items-center justify-between gap-3 rounded-md border border-outline bg-background px-3.5 py-3 text-sm",
+          "flex items-center justify-between gap-3 rounded-full border border-field bg-white px-3.5 py-2 text-[13px] shadow-[0_4px_14px_rgba(22,19,15,0.07)]",
           className,
         )}
       >
         <span className="min-w-0 truncate text-muted-foreground">
           Cutting at — <span className="text-foreground">{label}</span>
         </span>
-        <DialogTrigger className="shrink-0 font-semibold text-primary outline-none focus-visible:underline">
+        <DialogTrigger className="-m-2.5 shrink-0 p-2.5 font-semibold text-primary outline-none focus-visible:underline">
           Change
         </DialogTrigger>
       </div>
-      <DialogContent className="flex flex-col gap-4 rounded-lg border-[1.5px] border-outline p-4 ring-0 sm:max-w-md">
+      <DialogContent className="flex flex-col gap-4 rounded-[14px] border border-line p-5 ring-0 sm:max-w-md">
         <LocationEditor
           initial={stored ?? { ...fallback, label: null }}
           onDone={() => setOpen(false)}
@@ -110,7 +110,7 @@ function LocationEditor({
       </DialogDescription>
       <Input
         aria-label="Address"
-        className="h-12 border-[1.5px] border-outline"
+        className="h-12 rounded-[11px] border border-field px-3.5"
         placeholder="Street, barangay, city"
         value={label}
         onChange={(e) => setLabel(e.target.value)}

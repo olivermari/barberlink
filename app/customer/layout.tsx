@@ -1,7 +1,6 @@
 import { requireProfile } from "@/lib/supabase/require-profile";
 import { createClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/app-shell";
-import { CustomerSubnav, CustomerTabbar } from "@/components/customer/customer-nav";
+import { CustomerShell } from "@/components/customer/customer-shell";
 import { ActiveBookingBar } from "@/components/customer/active-booking-bar";
 
 const ACTIVE_STATUSES = ["queued", "pending", "accepted", "on_the_way", "in_service"];
@@ -40,15 +39,12 @@ export default async function CustomerLayout({
   }
 
   return (
-    <AppShell
-      role="customer"
+    <CustomerShell
       fullName={profile.full_name}
       avatarUrl={profile.avatar_url}
-      subnav={<CustomerSubnav />}
-      tabbar={<CustomerTabbar />}
+      banner={<ActiveBookingBar customerId={user.id} initialBooking={initialBooking} />}
     >
-      <ActiveBookingBar customerId={user.id} initialBooking={initialBooking} />
       {children}
-    </AppShell>
+    </CustomerShell>
   );
 }

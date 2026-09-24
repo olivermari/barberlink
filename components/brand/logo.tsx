@@ -49,11 +49,11 @@ function MarkSvg({
   );
 }
 
-// The full mark. Below ~28px the scissors close up into a smudge — use
-// `LogoMarkSmall` there instead.
-export function LogoMark({ size = 32, className, title }: MarkProps) {
+// The pin plus the scissors set in its eye — shared by the sized mark
+// and the em-sized "o" in the wordmark lockup.
+function FullMarkShapes() {
   return (
-    <MarkSvg size={size} className={className} title={title}>
+    <>
       <path fillRule="evenodd" d={PIN} />
       <g transform="translate(50 50) rotate(-40) scale(0.52)">
         <g
@@ -70,6 +70,16 @@ export function LogoMark({ size = 32, className, title }: MarkProps) {
         <path fillRule="evenodd" d={LOOP_LEFT} />
         <path fillRule="evenodd" d={LOOP_RIGHT} />
       </g>
+    </>
+  );
+}
+
+// The full mark. Below ~28px the scissors close up into a smudge — use
+// `LogoMarkSmall` there instead.
+export function LogoMark({ size = 32, className, title }: MarkProps) {
+  return (
+    <MarkSvg size={size} className={className} title={title}>
+      <FullMarkShapes />
     </MarkSvg>
   );
 }
@@ -92,33 +102,50 @@ const SIZES = {
 } as const;
 
 const WORDMARK =
-  "font-[family-name:var(--font-archivo)] font-black leading-none tracking-[-0.02em]";
+  "font-[family-name:var(--font-archivo)] font-normal leading-none tracking-[-0.02em]";
 
 function MarkForSize({ size }: { size: number }) {
   return size < 28 ? <LogoMarkSmall size={size} /> : <LogoMark size={size} />;
 }
 
-// Horizontal lockup — the primary. The wordmark is live text in
-// Archivo Black and inherits the surrounding text colour; the mark stays
-// brand red. Standalone assets for use outside the app live in
+// Horizontal lockup — the primary, as drawn in the Customer UI design:
+// "Barbero2G" in the display face with the pin standing in for the "o".
+// The text is live and inherits the surrounding colour; the pin stays
+// brand red and sizes itself in `em`, so the lockup scales with the
+// font size alone. Standalone assets for use outside the app live in
 // public/images.
+const LOCKUP = {
+  sm: "text-[18px]",
+  md: "text-[20px]",
+  lg: "text-[26px]",
+  xl: "text-[34px]",
+} as const;
+
 export function Logo({
   size = "sm",
   className,
   style,
 }: {
-  size?: keyof typeof SIZES;
+  size?: keyof typeof LOCKUP;
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const s = SIZES[size];
   return (
     <span
-      className={cn("inline-flex items-center", s.gap, className)}
+      role="img"
+      aria-label="Barbero2Go"
+      className={cn("inline-flex items-baseline", WORDMARK, LOCKUP[size], className)}
       style={style}
     >
-      <MarkForSize size={s.mark} />
-      <span className={cn(WORDMARK, s.text)}>Barbero2Go</span>
+      <span aria-hidden>Barbero2G</span>
+      <svg
+        viewBox="0 0 100 128"
+        aria-hidden
+        className="ml-[0.015em] block h-[0.95em] w-auto shrink-0 translate-y-[0.21em]"
+        style={{ fill: COLOR }}
+      >
+        <FullMarkShapes />
+      </svg>
     </span>
   );
 }

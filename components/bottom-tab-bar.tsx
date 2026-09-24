@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type TabLink = { href: string; label: string; icon: LucideIcon };
+// A pre-rendered element rather than a component reference — the Track
+// tab uses the brand mark (LogoMarkSmall) instead of a lucide icon, and
+// the two don't share a prop signature. Each caller sizes and hides its
+// own icon (lucide icons need an explicit aria-hidden; LogoMarkSmall
+// hides itself when given no title).
+export type TabLink = { href: string; label: string; icon: React.ReactNode };
 
 // Mobile-only bottom tab bar — thumb-reachable navigation for the two
 // roles that use this app on the move. Sits above the safe-area inset
@@ -19,7 +23,7 @@ export function BottomTabBar({
 }) {
   const pathname = usePathname();
   // The longest matching link wins, so a section's root tab (e.g.
-  // "/customer") doesn't also light up on "/customer/bookings".
+  // "/customer") doesn't also light up on "/customer/history".
   const activeHref = links
     .map((link) => link.href)
     .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
@@ -33,7 +37,6 @@ export function BottomTabBar({
     >
       {links.map((link) => {
         const active = link.href === activeHref;
-        const Icon = link.icon;
         const hasBadge = badges?.[link.href];
 
         return (
@@ -48,7 +51,7 @@ export function BottomTabBar({
             )}
           >
             <span className="relative">
-              <Icon className="size-5" aria-hidden="true" />
+              {link.icon}
               {hasBadge && (
                 <span
                   className="absolute -right-1 -top-1 size-2 rounded-full bg-destructive"

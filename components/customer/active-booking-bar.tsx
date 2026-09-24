@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { notify } from "@/lib/notifications";
+import { cn } from "@/lib/utils";
 
 type ActiveBooking = {
   id: string;
@@ -103,9 +104,13 @@ export function ActiveBookingBar({
             const row = payload.new as { id: string; status: string; barber_id: string };
             const label = STATUS_LABEL[row.status];
             if (label) {
+              // Every STATUS_LABEL entry is an active status, so this is
+              // always the customer's current booking — send it to the
+              // Track tab rather than the id-specific detail route, so
+              // the tab bar highlights correctly on arrival.
               notify({
                 title: label,
-                url: `/customer/bookings/${row.id}`,
+                url: "/customer/track",
                 tag: `booking-${row.id}`,
                 toastFn: toast.info,
               });
@@ -172,10 +177,11 @@ export function ActiveBookingBar({
     };
   }, [customerId]);
 
-  // The bookings list and the booking's own page already show all of this.
+  // The Track tab and the booking's own detail page already show all of
+  // this.
   if (
     !booking ||
-    pathname === "/customer/bookings" ||
+    pathname === "/customer/track" ||
     pathname === `/customer/bookings/${booking.id}`
   ) {
     return null;
@@ -183,8 +189,12 @@ export function ActiveBookingBar({
 
   return (
     <Link
-      href={`/customer/bookings/${booking.id}`}
-      className="flex items-center justify-between gap-3 bg-foreground px-4 py-2.5 text-sm text-background sm:px-6"
+      href="/customer/track"
+      // On desktop Book the pinned track card already says this.
+      className={cn(
+        "flex items-center justify-between gap-3 bg-foreground px-4 py-2.5 text-[13.5px] text-background sm:px-6",
+        pathname === "/customer" && "lg:hidden",
+      )}
     >
       <span className="flex min-w-0 items-center gap-2.5">
         <span className="size-2 shrink-0 animate-pulse rounded-full bg-primary" aria-hidden />
@@ -194,7 +204,7 @@ export function ActiveBookingBar({
           <span className="opacity-75">{STATUS_LABEL[booking.status] ?? booking.status}</span>
         </span>
       </span>
-      <span className="shrink-0 font-semibold">Track</span>
+      <span className="shrink-0 font-bold text-[#ff8a7d]">Track ›</span>
     </Link>
   );
 }

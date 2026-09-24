@@ -3,19 +3,12 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { LockIcon, MailIcon, UserIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { AuthScreen } from "@/components/auth/auth-screen";
+import { AuthField, AuthPasswordField } from "@/components/auth/auth-fields";
+import { SegButton, Segmented } from "@/components/customer/ui";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SignupPage() {
   return (
@@ -71,101 +64,80 @@ function SignupForm() {
 
   if (confirmSent) {
     return (
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Check your email</CardTitle>
-          <CardDescription>
-            We sent a confirmation link to {email}. Confirm your address,
-            then log in.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/login" className="text-sm underline">
-            Back to login
+      <AuthScreen
+        title="Check your email"
+        subtitle={`We sent a confirmation link to ${email}. Confirm your address, then log in.`}
+        footer={
+          <Link href="/login" className="font-bold text-primary">
+            Back to log in
           </Link>
-        </CardContent>
-      </Card>
+        }
+      >
+        <span />
+      </AuthScreen>
     );
   }
 
   return (
-    <div className="flex w-full max-w-sm flex-col gap-6">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-xl">Let&apos;s get you started</CardTitle>
-          <CardDescription>
-            Sign up as a customer, or as a barber to start taking bookings.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs
-            value={role}
-            onValueChange={(v) => setRole(v as "customer" | "barber")}
-            className="mb-5"
-          >
-            <TabsList className="w-full">
-              <TabsTrigger value="customer" className="flex-1">
-                Customer
-              </TabsTrigger>
-              <TabsTrigger value="barber" className="flex-1">
-                Barber
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+    <AuthScreen
+      title="Let’s get you started"
+      subtitle="Sign up as a customer, or as a barber to start taking bookings."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/login" className="font-bold text-primary">
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <Segmented className="lg:mt-1">
+        <SegButton active={role === "customer"} onClick={() => setRole("customer")}>
+          Customer
+        </SegButton>
+        <SegButton active={role === "barber"} onClick={() => setRole("barber")}>
+          Barber
+        </SegButton>
+      </Segmented>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="fullName">Full name</Label>
-              <Input
-                id="fullName"
-                className="h-11"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                className="h-11"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Password</Label>
-              <PasswordInput
-                id="password"
-                className="h-11"
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-[13px] lg:gap-[15px]">
+        <AuthField
+          icon={UserIcon}
+          label="Full name"
+          autoComplete="name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          required
+        />
+        <AuthField
+          icon={MailIcon}
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <AuthPasswordField
+          icon={LockIcon}
+          label="Password"
+          autoComplete="new-password"
+          minLength={6}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="h-11 w-full text-base"
-            >
-              {loading ? "Creating account..." : `Sign up as ${role}`}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-foreground underline underline-offset-4">
-          Log in
-        </Link>
-      </p>
-    </div>
+        <Button type="submit" disabled={loading} className="h-[52px] w-full rounded-xl text-base font-bold lg:h-[54px]">
+          {loading ? "Creating account…" : `Sign up as ${role}`}
+        </Button>
+      </form>
+    </AuthScreen>
   );
 }

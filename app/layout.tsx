@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Archivo } from "next/font/google";
+import { Geist_Mono, Archivo_Black, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
@@ -9,13 +9,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// The brand face and the UI face in one: Archivo 400–700 for running
-// text, 900 for the wordmark, display type and big numbers — the same
-// pairing the Claude Design wireframes are drawn in.
-const archivo = Archivo({
+// The UI face from the Customer UI design: geometric enough to feel like
+// a consumer app, with a tall x-height that holds up at 11–12px in tab
+// bars and table rows.
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+// Archivo Black — the wordmark face (components/brand/logo.tsx).
+const archivo = Archivo_Black({
   variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -35,11 +42,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistMono.variable} ${archivo.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${archivo.variable} ${jakarta.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <Toaster />
+        {/* Top, not bottom: the bottom of the screen is where the primary
+            action lives on every phone screen (Quick Match, Complete job,
+            the tab bar) — a bottom toast covers exactly what a user needs
+            to tap next. */}
+        <Toaster position="top-center" />
       </body>
     </html>
   );

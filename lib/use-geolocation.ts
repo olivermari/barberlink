@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-// Manila — used whenever we don't have a real fix yet.
-const DEFAULT_CENTER = { lat: 14.5995, lng: 120.9842 };
+// Lipa City — the market this app serves — used whenever we don't have
+// a real fix yet. Same point admin/coverage defaults to.
+const DEFAULT_CENTER = { lat: 13.9411, lng: 121.1631 };
 
 export type GeolocationStatus = "locating" | "granted" | "denied" | "unsupported";
 

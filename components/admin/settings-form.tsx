@@ -22,7 +22,7 @@ const FIELDS: {
   {
     key: "fee_percentage",
     label: "Platform commission",
-    help: "Of each booking's total. Cash jobs draw it from the barber's wallet.",
+    help: "Of the service price and chosen-barber fee, not the distance fee. Cash jobs draw it from the barber's wallet.",
     unit: "%",
     min: 0,
     max: 100,
@@ -36,6 +36,24 @@ const FIELDS: {
     min: 0.5,
     max: 50,
     step: 0.5,
+  },
+  {
+    key: "distance_free_km",
+    label: "Free distance",
+    help: "A barber within this range adds no travel charge; past it, the distance fee applies.",
+    unit: "km",
+    min: 0,
+    max: 50,
+    step: 0.5,
+  },
+  {
+    key: "distance_fee_per_km",
+    label: "Distance fee",
+    help: "Per km beyond the free distance, added to the customer's total. The barber keeps it in full — no commission.",
+    unit: "₱",
+    min: 0,
+    max: 500,
+    step: 1,
   },
   {
     key: "min_wallet_to_go_online",

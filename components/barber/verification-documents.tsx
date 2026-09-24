@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import {
   DOCUMENT_KINDS,
   DOCUMENTS_BUCKET,
@@ -12,7 +13,7 @@ import {
 } from "@/lib/barber-documents";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { SectionLabel } from "@/components/ui/section-label";
+import { Caption, PRIMARY_ACTION } from "@/components/customer/ui";
 
 export type BarberDocument = { kind: string; storagePath: string; url: string | null };
 
@@ -44,7 +45,7 @@ export function VerificationDocuments({
     const { error: uploadError } = await supabase.storage.from(DOCUMENTS_BUCKET).upload(path, file);
     if (uploadError) {
       setUploading(null);
-      toast.error(uploadError.message);
+      toast.error(friendlyError(uploadError, "Couldn't upload that. Try again."));
       return;
     }
 
@@ -57,7 +58,7 @@ export function VerificationDocuments({
     if (error) {
       await supabase.storage.from(DOCUMENTS_BUCKET).remove([path]);
       setUploading(null);
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't save that document. Try again."));
       return;
     }
 
@@ -74,7 +75,7 @@ export function VerificationDocuments({
     const { error } = await createClient().rpc("resubmit_verification");
     setSending(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't send for review. Try again."));
       return;
     }
     toast.success("Sent — an admin will take another look.");
@@ -82,24 +83,24 @@ export function VerificationDocuments({
   }
 
   return (
-    <section id="documents" className="flex scroll-mt-20 flex-col gap-2.5">
-      <SectionLabel>Verification documents</SectionLabel>
+    <section id="documents" className="flex scroll-mt-20 flex-col gap-2.5 rounded-[14px] border border-line bg-white p-4">
+      <Caption>Verification documents</Caption>
 
       {status === "needs_info" && (
-        <div className="flex flex-col gap-1 rounded-lg border-2 border-primary p-3.5">
+        <div className="flex flex-col gap-1 rounded-xl border border-foreground bg-wash p-3.5">
           <span className="text-sm font-bold">An admin needs more from you</span>
-          <p className="text-sm text-ink-soft">
+          <p className="text-[13.5px] text-[#4c463d]">
             {infoRequest || "Check your documents below and re-upload anything unclear."}
           </p>
         </div>
       )}
       {status === "rejected" && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[13.5px] text-[#6a635a]">
           Your application was rejected. Contact support if you think that&apos;s a mistake.
         </p>
       )}
       {status === "pending" && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[13.5px] text-[#6a635a]">
           {requiredDone} of {REQUIRED_DOCUMENT_COUNT} required documents uploaded.{" "}
           {requiredDone < REQUIRED_DOCUMENT_COUNT
             ? "An admin reviews your application once all three are in."
@@ -112,12 +113,12 @@ export function VerificationDocuments({
           const doc = byKind.get(kind);
           return (
             <div key={kind} className="flex flex-col gap-1.5">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[5px] border border-input bg-placeholder">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-photo-border bg-photo">
                 {doc?.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={doc.url} alt={label} className="size-full object-cover" />
                 ) : (
-                  <span className="absolute inset-0 flex items-center justify-center text-[11px] text-faint">
+                  <span className="absolute inset-0 flex items-center justify-center text-[11px] text-muted-foreground">
                     {required ? "Required" : "Optional"}
                   </span>
                 )}
@@ -126,7 +127,7 @@ export function VerificationDocuments({
                 <span className="font-semibold">{label}</span>
                 <label
                   className={cn(
-                    "cursor-pointer font-semibold text-primary",
+                    "-m-2.5 cursor-pointer p-2.5 font-semibold text-primary",
                     uploading !== null && "pointer-events-none opacity-60",
                   )}
                 >
@@ -151,8 +152,7 @@ export function VerificationDocuments({
 
       {status === "needs_info" && (
         <Button
-          size="lg"
-          className="h-12"
+          className={PRIMARY_ACTION}
           onClick={resubmit}
           disabled={sending || requiredDone < REQUIRED_DOCUMENT_COUNT}
         >

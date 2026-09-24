@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +30,7 @@ export function MarkPaidButton({
     setLoading(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't update that. Try again."));
       return;
     }
 
@@ -40,7 +41,7 @@ export function MarkPaidButton({
   return (
     <Button
       variant="outline"
-      className={cn("h-12 text-[15px] font-bold", className)}
+      className={cn("h-11 rounded-xl border-foreground text-[14px] font-bold", className)}
       onClick={handleClick}
       disabled={loading}
     >

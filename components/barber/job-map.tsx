@@ -53,9 +53,11 @@ export function JobMap({ customer, barber }: { customer: Point | null; barber: P
       center={[anchor.lat, anchor.lng]}
       zoom={15}
       scrollWheelZoom={false}
+      zoomControl={false}
       style={{ height: "100%", width: "100%" }}
     >
       <TileLayer
+        className="b2g-tiles"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />

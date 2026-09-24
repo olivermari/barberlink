@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { Button } from "@/components/ui/button";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 
-// Wireframe C5. Queue wait is the moment customers abandon, so the way
-// back to Quick Match sits inside the card. The copy stays honest: the
-// barber takes whoever's nearest next (0007's promote trigger), so
-// there's no "you're 2nd" and no ETA.
+// The queue state of Track (the design has no queued screen, so it's
+// drawn from the same card language). Queue wait is the moment customers
+// abandon, so the way back to Quick Match sits inside the card. The copy
+// stays honest: the barber takes whoever's nearest next (0007's promote
+// trigger), so there's no "you're 2nd" and no ETA.
 export function QueueCard({
   bookingId,
   barberId,
@@ -53,7 +55,7 @@ export function QueueCard({
 
     if (error || !data) {
       setSwitching(false);
-      toast.error(error?.message ?? "It's your turn now — your barber is on it.");
+      toast.error(error ? friendlyError(error) : "It's your turn now — your barber is on it.");
       router.refresh();
       return;
     }
@@ -62,25 +64,25 @@ export function QueueCard({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border-2 border-primary p-4">
+    <div className="flex flex-col gap-2.5 rounded-[14px] border border-foreground p-[15px]">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-lg font-bold">{`You're in ${barberName}'s queue`}</h2>
+        <h2 className="text-[15px] font-bold">{`You're in ${barberName}'s queue`}</h2>
         {detailHref && (
-          <Link href={detailHref} className="shrink-0 text-sm font-semibold text-primary">
+          <Link href={detailHref} className="shrink-0 text-[13px] font-bold text-primary">
             Details
           </Link>
         )}
       </div>
-      <p className="text-sm leading-snug text-ink-soft">{copy}</p>
-      <div className="mt-1 flex gap-2">
-        <Button className="h-11 flex-1" onClick={quickMatchInstead} disabled={switching}>
+      <p className="text-[13px] leading-[1.45] text-[#6a635a]">{copy}</p>
+      <div className="mt-0.5 flex gap-2">
+        <Button className="h-11 flex-1 rounded-[10px] text-[15px] font-bold" onClick={quickMatchInstead} disabled={switching}>
           {switching ? "Switching…" : "Quick Match instead"}
         </Button>
         <CancelBookingButton
           bookingId={bookingId}
           status="queued"
           label="Cancel"
-          className="h-11 px-4"
+          className="h-11 rounded-[10px] border border-foreground px-4 font-bold"
         />
       </div>
     </div>

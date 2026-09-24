@@ -5,20 +5,28 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CameraIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Photo } from "@/components/customer/ui";
 
 export function AvatarUpload({
   userId,
   avatarUrl,
   fallback,
   children,
+  badge,
+  photoClassName,
 }: {
   userId: string;
   avatarUrl: string | null;
   fallback: string;
   // Name and details shown between the photo and the button (B5 header).
   children?: React.ReactNode;
+  // The Barber UI's avatar: just the photo with a camera badge on its
+  // corner that opens the file picker.
+  badge?: boolean;
+  photoClassName?: string;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +48,7 @@ export function AvatarUpload({
 
     if (uploadError) {
       setUploading(false);
-      toast.error(uploadError.message);
+      toast.error(friendlyError(uploadError, "Couldn't upload that photo. Try again."));
       return;
     }
 
@@ -60,12 +68,36 @@ export function AvatarUpload({
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     if (updateError) {
-      toast.error(updateError.message);
+      toast.error(friendlyError(updateError, "Couldn't save your photo. Try again."));
       return;
     }
 
     toast.success("Profile photo updated.");
     router.refresh();
+  }
+
+  if (badge) {
+    return (
+      <div className="relative shrink-0">
+        <Photo src={avatarUrl} name={fallback} className={photoClassName ?? "size-[62px]"} />
+        <button
+          type="button"
+          aria-label="Change photo"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="absolute -right-0.5 -bottom-0.5 flex size-6 items-center justify-center rounded-full border-2 border-white bg-foreground text-white disabled:opacity-60"
+        >
+          <CameraIcon className="size-[11px]" aria-hidden />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </div>
+    );
   }
 
   return (
@@ -81,7 +113,7 @@ export function AvatarUpload({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="text-sm font-semibold text-primary disabled:opacity-60"
+            className="-m-2.5 p-2.5 text-sm font-semibold text-primary disabled:opacity-60"
           >
             {uploading ? "Uploading…" : "Replace photo"}
           </button>
@@ -89,7 +121,6 @@ export function AvatarUpload({
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >

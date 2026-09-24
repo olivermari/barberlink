@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,9 +34,14 @@ const CATEGORIES = [
 export function ReportProblemDialog({
   bookingId,
   raisedBy,
+  variant = "button",
 }: {
   bookingId: string;
   raisedBy: string;
+  // "link": a plain text trigger for dense lists (History) where a full
+  // outlined button on every row was the loudest thing on the screen.
+  // "ink": the Customer UI's full-width ink-outlined "Report an issue".
+  variant?: "button" | "link" | "ink";
 }) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<string>("service_quality");
@@ -58,7 +64,7 @@ export function ReportProblemDialog({
     setLoading(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't send that report. Try again."));
       return;
     }
 
@@ -78,8 +84,24 @@ export function ReportProblemDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        Report a problem
+      <DialogTrigger
+        render={
+          variant === "ink" ? (
+            <button
+              type="button"
+              className="w-full rounded-[11px] border border-foreground p-3 text-center text-sm font-bold transition-colors hover:bg-wash"
+            />
+          ) : variant === "link" ? (
+            <button
+              type="button"
+              className="-m-2.5 p-2.5 text-[13px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            />
+          ) : (
+            <Button variant="outline" size="sm" />
+          )
+        }
+      >
+        {variant === "ink" ? "Report an issue" : "Report a problem"}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

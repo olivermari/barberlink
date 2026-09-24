@@ -24,8 +24,53 @@ const YMD = new Intl.DateTimeFormat("en-CA", {
   timeZone: TIME_ZONE,
 });
 
+const TIME = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: TIME_ZONE,
+});
+
+const YEAR = new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: TIME_ZONE });
+
+const MONTH_YEAR = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  year: "numeric",
+  timeZone: TIME_ZONE,
+});
+
 export function formatShortDate(iso: string) {
   return SHORT_DATE.format(new Date(iso));
+}
+
+// "10:24 AM"
+export function formatTime(iso: string) {
+  return TIME.format(new Date(iso));
+}
+
+// A conversation row's time: "2:10 PM" today, "Yesterday", else "Sep 4".
+// `now` is passed in so server renders stay pure.
+export function formatThreadTime(iso: string, now: number) {
+  const day = (ms: number) => YMD.format(new Date(ms));
+  const at = new Date(iso).getTime();
+  if (day(at) === day(now)) return TIME.format(new Date(at));
+  if (day(at) === day(now - 86_400_000)) return "Yesterday";
+  return SHORT_DATE.format(new Date(at));
+}
+
+// "Sep 4 · 10:24 AM" — a History row's date line.
+export function formatDayTime(iso: string) {
+  return `${SHORT_DATE.format(new Date(iso))} · ${TIME.format(new Date(iso))}`;
+}
+
+// The calendar year in Manila, e.g. 2026 — for "This year" totals.
+export function manilaYear(iso: string) {
+  return Number(YEAR.format(new Date(iso)));
+}
+
+// "September 2026" — groups History rows the way Airbnb groups Trips
+// and Wishlists by when they happened.
+export function formatMonthYear(iso: string) {
+  return MONTH_YEAR.format(new Date(iso));
 }
 
 // "Sep 4, 14:20"

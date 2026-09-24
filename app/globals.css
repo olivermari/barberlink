@@ -7,9 +7,28 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-archivo);
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-archivo);
+  --font-heading: var(--font-jakarta), system-ui, sans-serif;
+  /* Customer UI design tokens: soft 1px cards on white, wash surfaces,
+     and the status-chip / warning tints. */
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-field: var(--field);
+  --color-wash: var(--wash);
+  --color-wash-border: var(--wash-border);
+  --color-ok: var(--ok);
+  --color-ok-border: var(--ok-border);
+  --color-ok-fg: var(--ok-fg);
+  --color-bad: var(--bad);
+  --color-bad-border: var(--bad-border);
+  --color-bad-fg: var(--bad-fg);
+  --color-warn: var(--warn);
+  --color-warn-border: var(--warn-border);
+  --color-warn-fg: var(--warn-fg);
+  --color-photo: var(--photo);
+  --color-photo-border: var(--photo-border);
+  --color-ground: var(--ground);
   /* Brand extras from the wireframe palette (Phase 9). */
   --color-outline: var(--outline);
   --color-ink-soft: var(--ink-soft);
@@ -83,6 +102,24 @@
   --faint: #8a8277;
   --line-strong: #d8d2c5;
   --placeholder: #e9e4d8;
+  /* Customer UI design (Barbero2Go Customer UI). */
+  --line: #e5ded0;
+  --line-soft: #eee8db;
+  --field: #e0d9ca;
+  --wash: #f6f3ec;
+  --wash-border: #eae3d5;
+  --ok: #eef6ee;
+  --ok-border: #cfe3cf;
+  --ok-fg: #2f6b34;
+  --bad: #fdf1ee;
+  --bad-border: #f3d3cc;
+  --bad-fg: #a33322;
+  --warn: #fdf6ee;
+  --warn-border: #f0dfc6;
+  --warn-fg: #7c5a1c;
+  --photo: #e4dfd3;
+  --photo-border: #d3ccbd;
+  --ground: #f2eee4;
   --chart-1: #cf2417;
   --chart-2: #16130f;
   --chart-3: #6a635a;
@@ -128,6 +165,23 @@
   --faint: #6f675c;
   --line-strong: #3a342c;
   --placeholder: #241f19;
+  --line: #3a342c;
+  --line-soft: #2e2820;
+  --field: #4c463d;
+  --wash: #241f19;
+  --wash-border: #3a342c;
+  --ok: #17281a;
+  --ok-border: #2c4a30;
+  --ok-fg: #8fd097;
+  --bad: #2c1815;
+  --bad-border: #5a2b24;
+  --bad-fg: #f2a396;
+  --warn: #2a2113;
+  --warn-border: #4d3b1c;
+  --warn-fg: #e6c07a;
+  --photo: #2e2820;
+  --photo-border: #3a342c;
+  --ground: #16130f;
   --chart-1: #d8341f;
   --chart-2: #f2eee4;
   --chart-3: #a49c90;
@@ -153,4 +207,10 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Customer UI map ground: OSM tiles drained and warmed toward the design's
+   cream map so barber pins and the red position dot carry the screen. */
+.b2g-tiles {
+  filter: grayscale(0.85) sepia(0.32) brightness(1.06) contrast(0.82);
 }

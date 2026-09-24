@@ -2,10 +2,12 @@ import type { createClient } from "@/lib/supabase/server";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
-// Fallbacks match the values seeded by migrations 0007/0011/0017/0020.
+// Fallbacks match the values seeded by migrations 0007/0011/0017/0020/0028.
 export const SETTING_DEFAULTS = {
   fee_percentage: 25,
-  max_match_radius_km: 1,
+  max_match_radius_km: 5,
+  distance_free_km: 3,
+  distance_fee_per_km: 10,
   min_wallet_to_go_online: 0,
   request_timeout_seconds: 40,
 } as const;

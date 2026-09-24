@@ -27,10 +27,14 @@ const NAV_ITEMS: { href: string; label: string; icon: typeof ActivityIcon; badge
 
 // A4: phones get triage — the counts, the queue, and a way into the rest.
 const TAB_LINKS: TabLink[] = [
-  { href: "/admin", label: "Ops", icon: ActivityIcon },
-  { href: "/admin/bookings", label: "Bookings", icon: CalendarCheckIcon },
-  { href: "/admin/barbers", label: "Barbers", icon: ScissorsIcon },
-  { href: "/admin/more", label: "More", icon: MoreHorizontalIcon },
+  { href: "/admin", label: "Ops", icon: <ActivityIcon className="size-5" aria-hidden="true" /> },
+  {
+    href: "/admin/bookings",
+    label: "Bookings",
+    icon: <CalendarCheckIcon className="size-5" aria-hidden="true" />,
+  },
+  { href: "/admin/barbers", label: "Barbers", icon: <ScissorsIcon className="size-5" aria-hidden="true" /> },
+  { href: "/admin/more", label: "More", icon: <MoreHorizontalIcon className="size-5" aria-hidden="true" /> },
 ];
 
 function isActive(pathname: string, href: string) {

@@ -1,22 +1,19 @@
-import Link from "next/link";
 import { requireProfile } from "@/lib/supabase/require-profile";
 import { ensureBarberProfile } from "@/lib/supabase/ensure-barber-profile";
 import { createClient } from "@/lib/supabase/server";
 import { getPendingRequest } from "@/lib/barber-request";
-import { formatPeso } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { AppShell } from "@/components/app-shell";
+import { readSettings } from "@/lib/platform-settings";
+import { BarberShell } from "@/components/barber/barber-shell";
 import { JobsBadgeProvider } from "@/components/barber/jobs-badge-provider";
-import { BarberSubnav, BarberTabbar } from "@/components/barber/barber-nav";
 import { AvailabilityToggle } from "@/components/barber/availability-toggle";
 import { LocationBroadcaster } from "@/components/barber/location-broadcaster";
 import { IncomingRequest } from "@/components/barber/incoming-request";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/customer/ui";
 
 const VERIFICATION_CHIP: Record<string, string> = {
-  pending: "PENDING VERIFICATION",
-  needs_info: "NEEDS INFO",
-  rejected: "NOT VERIFIED",
+  pending: "Verification pending",
+  needs_info: "Needs info",
+  rejected: "Not verified",
 };
 
 export default async function BarberLayout({
@@ -28,11 +25,14 @@ export default async function BarberLayout({
   const supabase = await createClient();
   await ensureBarberProfile(supabase, user.id);
 
-  const { data: barber } = await supabase
-    .from("barber_profiles")
-    .select("is_available, verification_status, token_balance, current_lat, current_lng")
-    .eq("id", user.id)
-    .single();
+  const [{ data: barber }, settings] = await Promise.all([
+    supabase
+      .from("barber_profiles")
+      .select("is_available, verification_status, token_balance, current_lat, current_lng")
+      .eq("id", user.id)
+      .single(),
+    readSettings(supabase),
+  ]);
 
   const position =
     barber?.current_lat != null && barber?.current_lng != null
@@ -47,32 +47,23 @@ export default async function BarberLayout({
 
   return (
     <JobsBadgeProvider barberId={user.id}>
-      <AppShell
-        role="barber"
+      <BarberShell
         fullName={profile.full_name}
         avatarUrl={profile.avatar_url}
-        subnav={<BarberSubnav />}
-        tabbar={<BarberTabbar />}
-        headerExtra={
-          <>
-            <Link href="/barber/earnings" className="text-sm text-muted-foreground hover:underline">
-              Wallet{" "}
-              <span className={cn("font-bold", balance < 0 ? "text-destructive" : "text-foreground")}>
-                {formatPeso(balance)}
-              </span>
-            </Link>
-            {verificationStatus === "verified" ? (
-              <AvailabilityToggle barberId={user.id} isAvailable={isAvailable} />
-            ) : (
-              <Badge variant="outline" className="h-6 px-2">
-                {VERIFICATION_CHIP[verificationStatus] ?? "NOT VERIFIED"}
-              </Badge>
-            )}
-          </>
+        balance={balance}
+        minWallet={settings.min_wallet_to_go_online}
+        status={
+          verificationStatus === "verified" ? (
+            <AvailabilityToggle barberId={user.id} isAvailable={isAvailable} />
+          ) : (
+            <StatusPill tone="quiet" className="max-lg:hidden">
+              {VERIFICATION_CHIP[verificationStatus] ?? "Not verified"}
+            </StatusPill>
+          )
         }
       >
         {children}
-      </AppShell>
+      </BarberShell>
       <LocationBroadcaster barberId={user.id} isAvailable={isAvailable} />
       {request && <IncomingRequest key={request.id} request={request} />}
     </JobsBadgeProvider>

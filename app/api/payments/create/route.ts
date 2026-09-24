@@ -89,7 +89,10 @@ export async function POST(request: Request) {
     const payment = await createGcashPayment({
       amount: booking.price,
       bookingId: booking.id,
-      returnUrl: `${origin}/customer/bookings/${booking.id}`,
+      // This is always a freshly created, still-active booking (a tip
+      // payment, which happens after completion, has its own return URL
+      // in app/api/payments/tip/route.ts) — Track is where it belongs.
+      returnUrl: `${origin}/customer/track`,
     });
 
     await supabase.from("payments").insert({

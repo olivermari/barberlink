@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { getCurrentPosition, LocationRequiredError } from "@/lib/get-current-position";
+import { friendlyError } from "@/lib/friendly-error";
+import {
+  ensurePushSubscription,
+  notificationPermission,
+  requestNotificationPermission,
+} from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -77,11 +83,19 @@ function useAvailability(barberId: string, serverValue: boolean) {
 
       setLoading(false);
       if (error) {
-        toast.error(error.message);
+        toast.error(friendlyError(error, "Couldn't go online. Try again."));
         return;
       }
       setIsAvailable(true);
       toast.success("You're online.");
+      // Asked here, not on first visit: this is the moment a missed
+      // request notification would actually cost the barber a job, so
+      // it's the one place the ask has real context behind it.
+      if (notificationPermission() === "default") {
+        requestNotificationPermission().then((permission) => {
+          if (permission === "granted") ensurePushSubscription();
+        });
+      }
       router.refresh();
       return;
     }
@@ -93,7 +107,7 @@ function useAvailability(barberId: string, serverValue: boolean) {
 
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't go offline. Try again."));
       return;
     }
     setIsAvailable(false);
@@ -104,14 +118,18 @@ function useAvailability(barberId: string, serverValue: boolean) {
   return { isAvailable, loading, setOnline };
 }
 
-// The ONLINE / OFFLINE pill from B1 and B6.
+// The design's ONLINE / OFFLINE pill: the most consequential control in the
+// app, so it is a full pill with its own label and track. `dark` is the
+// phone's ink band; `size="lg"` is the phone's larger track.
 export function AvailabilityToggle({
   barberId,
   isAvailable: serverValue,
+  dark,
   className,
 }: {
   barberId: string;
   isAvailable: boolean;
+  dark?: boolean;
   className?: string;
 }) {
   const { isAvailable, loading, setOnline } = useAvailability(barberId, serverValue);
@@ -125,21 +143,31 @@ export function AvailabilityToggle({
       onClick={() => setOnline(!isAvailable)}
       disabled={loading}
       className={cn(
-        "flex shrink-0 items-center gap-2 rounded-full border-[1.5px] py-1 pr-1 pl-3 text-[13px] font-bold tracking-wide transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60",
-        isAvailable ? "border-primary text-primary" : "border-outline text-muted-foreground",
+        "flex shrink-0 items-center gap-[9px] rounded-[20px] border py-[5px] pr-2 pl-[13px] outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60",
+        isAvailable ? "border-primary" : dark ? "border-[#4c463d]" : "border-line-strong",
         className,
       )}
     >
-      {isAvailable ? "ONLINE" : "OFFLINE"}
+      <span
+        className={cn(
+          "text-[12.5px] font-bold",
+          isAvailable ? (dark ? "text-[#e8402f]" : "text-primary") : "text-[#a49c90]",
+        )}
+      >
+        {isAvailable ? "ONLINE" : "OFFLINE"}
+      </span>
       <span
         aria-hidden
         className={cn(
-          "flex h-6 w-10 items-center rounded-full p-0.5 transition-colors",
-          isAvailable ? "justify-end bg-primary" : "justify-start bg-border",
+          "flex h-[22px] w-[38px] items-center rounded-[11px] p-0.5 transition-colors max-lg:h-6 max-lg:w-10 max-lg:rounded-xl",
+          isAvailable ? "justify-end bg-primary" : dark ? "justify-start bg-[#3a342c]" : "justify-start bg-[#d8d2c5]",
         )}
       >
         <span
-          className={cn("size-5 rounded-full", isAvailable ? "bg-primary-foreground" : "bg-faint")}
+          className={cn(
+            "size-[18px] rounded-full max-lg:size-5",
+            isAvailable ? "bg-white" : dark ? "bg-[#8a8277]" : "bg-white",
+          )}
         />
       </span>
     </button>
@@ -156,7 +184,7 @@ export function GoOnlineButton({
   const { loading, setOnline } = useAvailability(barberId, isAvailable);
 
   return (
-    <Button size="lg" className="h-12 text-base" onClick={() => setOnline(true)} disabled={loading}>
+    <Button className="h-auto rounded-[11px] p-[15px] text-base font-bold" onClick={() => setOnline(true)} disabled={loading}>
       {loading ? "Getting your location…" : "Go online"}
     </Button>
   );

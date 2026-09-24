@@ -1,20 +1,10 @@
-import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
-
-// Scoped dark treatment for the auth screens only — applying the
-// app's existing `.dark` tokens (already defined in globals.css,
-// unused elsewhere) to this wrapper, not inventing a new palette.
+// Each auth page draws its own full-bleed frame (components/auth/
+// auth-screen.tsx): a dark hero and a form sheet on phones, an ink panel
+// beside a form column on desktop.
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="dark flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4 py-12">
-      <Link href="/" className="text-foreground">
-        <Logo size="lg" />
-      </Link>
-      {children}
-    </div>
-  );
+  return children;
 }

@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { SectionLabel } from "@/components/ui/section-label";
+import { Caption, PRIMARY_ACTION } from "@/components/customer/ui";
 
 export function ProfileForm({
   barberId,
@@ -18,6 +19,8 @@ export function ProfileForm({
   yearsExperience,
   baseAddress,
   serviceRadiusKm,
+  maxMatchRadiusKm,
+  onSaved,
 }: {
   barberId: string;
   fullName: string | null;
@@ -26,6 +29,11 @@ export function ProfileForm({
   yearsExperience: number | null;
   baseAddress: string | null;
   serviceRadiusKm: number | null;
+  // Matching is capped platform-wide (platform_settings) regardless of
+  // what a barber sets here — worth saying next to the field, or a
+  // barber can set 5km and never learn why jobs past 1km never arrive.
+  maxMatchRadiusKm: number;
+  onSaved?: () => void;
 }) {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -62,22 +70,20 @@ export function ProfileForm({
     setLoading(false);
 
     if (profileError || barberError) {
-      toast.error(profileError?.message ?? barberError?.message);
+      toast.error(friendlyError(profileError ?? barberError, "Couldn't save your profile. Try again."));
       return;
     }
 
     toast.success("Profile updated.");
     router.refresh();
+    onSaved?.();
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <Label
-          htmlFor="bio"
-          className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase"
-        >
-          Bio
+        <Label htmlFor="bio">
+          <Caption>Bio</Caption>
         </Label>
         <Textarea
           id="bio"
@@ -85,18 +91,19 @@ export function ProfileForm({
           value={form.bio}
           onChange={(e) => setForm({ ...form, bio: e.target.value })}
           placeholder="Fades, tapers, beard work — what you're known for."
-          className="border-[1.5px] border-outline"
+          className="rounded-xl border-field bg-white px-3.5 py-3 text-[15px]"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-faint">
           Two or three lines, shown on your public profile.
         </p>
       </div>
 
       <div className="flex flex-col gap-3">
-        <SectionLabel>Details</SectionLabel>
+        <Caption>Details</Caption>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field id="fullName" label="Full name">
             <Input
+              className="h-12 rounded-xl border-field bg-white px-3.5 text-[15px]"
               id="fullName"
               value={form.fullName}
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
@@ -105,6 +112,7 @@ export function ProfileForm({
           </Field>
           <Field id="phone" label="Phone">
             <Input
+              className="h-12 rounded-xl border-field bg-white px-3.5 text-[15px]"
               id="phone"
               type="tel"
               value={form.phone}
@@ -113,6 +121,7 @@ export function ProfileForm({
           </Field>
           <Field id="yearsExperience" label="Years of experience">
             <Input
+              className="h-12 rounded-xl border-field bg-white px-3.5 text-[15px]"
               id="yearsExperience"
               type="number"
               min={0}
@@ -122,6 +131,7 @@ export function ProfileForm({
           </Field>
           <Field id="serviceRadiusKm" label="Service radius (km)">
             <Input
+              className="h-12 rounded-xl border-field bg-white px-3.5 text-[15px]"
               id="serviceRadiusKm"
               type="number"
               min={0}
@@ -129,9 +139,14 @@ export function ProfileForm({
               value={form.serviceRadiusKm}
               onChange={(e) => setForm({ ...form, serviceRadiusKm: e.target.value })}
             />
+            <p className="text-xs text-faint">
+              Matching is capped at {maxMatchRadiusKm} km platform-wide, so a wider radius here
+              won&apos;t bring in jobs past that.
+            </p>
           </Field>
           <Field id="baseAddress" label="Base address" className="sm:col-span-2">
             <Input
+              className="h-12 rounded-xl border-field bg-white px-3.5 text-[15px]"
               id="baseAddress"
               value={form.baseAddress}
               onChange={(e) => setForm({ ...form, baseAddress: e.target.value })}
@@ -141,7 +156,10 @@ export function ProfileForm({
         </div>
       </div>
 
-      <Button type="submit" variant="outline" disabled={loading} className="self-start">
+      {/* Was styled as a secondary/outline button despite being this
+          section's one save action — the customer profile form's save
+          button is already primary; this matches it. */}
+      <Button type="submit" disabled={loading} className={PRIMARY_ACTION}>
         {loading ? "Saving…" : "Save profile"}
       </Button>
     </form>
@@ -161,7 +179,7 @@ function Field({
 }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="text-[13px] font-bold">{label}</Label>
       {children}
     </div>
   );

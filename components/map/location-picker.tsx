@@ -2,15 +2,7 @@
 
 import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
-import L from "leaflet";
-
-// Default marker images don't resolve correctly once bundled — point
-// them at the CDN copies instead of wiring up asset imports.
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+import { SPOT_ICON } from "./markers";
 
 function Recenter({ center }: { center: [number, number] }) {
   const map = useMap();
@@ -30,12 +22,17 @@ function ClickToPlace({ onChange }: { onChange: (coords: { lat: number; lng: num
   return null;
 }
 
+// The pin-your-spot map. `interactive={false}` makes it the small
+// read-only thumbnail on Booking Confirmation ("View on map" opens the
+// interactive one).
 export function LocationPicker({
   position,
   onChange,
+  interactive = true,
 }: {
   position: { lat: number; lng: number };
-  onChange: (coords: { lat: number; lng: number }) => void;
+  onChange?: (coords: { lat: number; lng: number }) => void;
+  interactive?: boolean;
 }) {
   const center: [number, number] = [position.lat, position.lng];
 
@@ -43,22 +40,30 @@ export function LocationPicker({
     <MapContainer
       center={center}
       zoom={16}
-      scrollWheelZoom
+      scrollWheelZoom={interactive}
+      dragging={interactive}
+      doubleClickZoom={interactive}
+      touchZoom={interactive}
+      keyboard={interactive}
+      zoomControl={false}
+      attributionControl={interactive}
       style={{ height: "100%", width: "100%" }}
     >
       <TileLayer
+        className="b2g-tiles"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <Recenter center={center} />
-      <ClickToPlace onChange={onChange} />
+      {interactive && onChange && <ClickToPlace onChange={onChange} />}
       <Marker
         position={center}
-        draggable
+        icon={SPOT_ICON}
+        draggable={interactive}
         eventHandlers={{
           dragend: (e) => {
             const latlng = e.target.getLatLng();
-            onChange({ lat: latlng.lat, lng: latlng.lng });
+            onChange?.({ lat: latlng.lat, lng: latlng.lng });
           },
         }}
       />

@@ -1,24 +1,50 @@
 import L from "leaflet";
 
-// Marker language from the wireframes: barbers are ink pins and the
-// customer's own position is a red dot — the only red on the map, so
-// "where am I" never gets confused with "who's near me". Only import
-// this from map modules that are loaded client-side (ssr: false).
-export const BARBER_ICON = L.divIcon({
+// Marker language from the Customer UI design: barbers are ink teardrop
+// pins with a photo circle in the eye, and the customer's own position is
+// a red dot in soft concentric rings — the only red on the map, so "where
+// am I" never gets confused with "who's near me". Only import this from
+// map modules that are loaded client-side (ssr: false).
+
+const PIN_STYLE =
+  "width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#16130f;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(22,19,15,.3)";
+const EYE_STYLE =
+  "width:20px;height:20px;border-radius:50%;background:#e4dfd3;border:1px solid #cbc4b5;transform:rotate(45deg);overflow:hidden";
+
+// A barber pin; when the barber has a photo it fills the eye. `url` is
+// attribute-escaped — it comes from the database.
+export function barberPinIcon(avatarUrl?: string | null) {
+  const safe = avatarUrl ? avatarUrl.replace(/["<>]/g, "") : "";
+  const eye = safe
+    ? `<div style="${EYE_STYLE};background:url('${safe}') center/cover"></div>`
+    : `<div style="${EYE_STYLE}"></div>`;
+  return L.divIcon({
+    className: "",
+    html: `<div style="${PIN_STYLE}">${eye}</div>`,
+    iconSize: [32, 32],
+    // Rotating the square puts its sharp corner ~18px below centre —
+    // anchor on that point, not on the box.
+    iconAnchor: [16, 34],
+    popupAnchor: [0, -30],
+  });
+}
+
+export const BARBER_ICON = barberPinIcon();
+
+// The customer's chosen spot on the booking screens: a plain red teardrop.
+export const SPOT_ICON = L.divIcon({
   className: "",
-  html: `<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#16130f;box-shadow:0 2px 4px rgba(22,19,15,.35)"></div>`,
+  html: `<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#cf2417;box-shadow:0 2px 4px rgba(22,19,15,.3)"></div>`,
   iconSize: [26, 26],
-  // Rotating the square puts its sharp corner 18.4px below centre —
-  // anchor on that point, not on the box.
-  iconAnchor: [13, 31],
+  iconAnchor: [13, 30],
   popupAnchor: [0, -28],
 });
 
 export const YOU_ICON = L.divIcon({
   className: "",
-  html: `<div style="box-sizing:border-box;width:20px;height:20px;border-radius:50%;background:#cf2417;border:3px solid #fff;box-shadow:0 1px 4px rgba(22,19,15,.4)"></div>`,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  html: `<div style="box-sizing:border-box;width:18px;height:18px;border-radius:50%;background:#cf2417;border:4px solid #fff;box-shadow:0 0 0 7px rgba(207,36,23,.16),0 0 0 46px rgba(207,36,23,.07),0 0 0 82px rgba(207,36,23,.045)"></div>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
   popupAnchor: [0, -10],
 });
 
@@ -39,27 +65,6 @@ export function barberVehicleIcon(headingDeg: number) {
     </div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
-    popupAnchor: [0, -14],
-  });
-}
-
-// Desktop search page (C7): a floating price/status pill on the map,
-// the way Airbnb's map shows a nightly rate at each pin — here it's
-// "what would this cost / how long would I wait" instead. Mobile keeps
-// the plain BARBER_ICON dot; a text pill per barber is too much on a
-// 390px screen with several nearby. `iconSize`/`iconAnchor` are left at
-// [0,0] and the content centres itself via `transform`, since a pill's
-// width varies with its label and Leaflet can't measure text up front.
-export function barberPillIcon(label: string, highlighted = false) {
-  const bg = highlighted ? "#16130f" : "#ffffff";
-  const fg = highlighted ? "#ffffff" : "#16130f";
-  const border = highlighted ? "#16130f" : "#cbc4b5";
-  const safeLabel = label.replace(/</g, "&lt;");
-  return L.divIcon({
-    className: "",
-    html: `<div style="transform:translate(-50%,-50%);white-space:nowrap;padding:6px 11px;border-radius:999px;background:${bg};color:${fg};border:1.5px solid ${border};font:700 12px/1 Archivo,sans-serif;box-shadow:0 2px 6px rgba(22,19,15,.28)">${safeLabel}</div>`,
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
     popupAnchor: [0, -14],
   });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useAnimatedMarker } from "@/lib/use-animated-marker";
 import { BARBER_ICON, YOU_ICON, barberVehicleIcon } from "./markers";
@@ -77,9 +77,11 @@ export function TrackingMap({
       center={[customer.lat, customer.lng]}
       zoom={15}
       scrollWheelZoom={false}
+      zoomControl={false}
       style={{ height: "100%", width: "100%" }}
     >
       <TileLayer
+        className="b2g-tiles"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
@@ -89,6 +91,17 @@ export function TrackingMap({
         bLat={barber?.lat ?? null}
         bLng={barber?.lng ?? null}
       />
+      {/* The route line from the Customer UI's Track screen — straight,
+          since there's no routing service behind it. */}
+      {barber && (
+        <Polyline
+          positions={[
+            [barber.lat, barber.lng],
+            [customer.lat, customer.lng],
+          ]}
+          pathOptions={{ color: "#3b6fd8", weight: 4, opacity: 0.9, lineCap: "round" }}
+        />
+      )}
       <Marker position={[customer.lat, customer.lng]} icon={YOU_ICON} />
       {barber && <AnimatedBarberMarker target={barber} />}
     </MapContainer>

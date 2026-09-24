@@ -34,11 +34,17 @@ export function AppShell({
         <Link href={roleHomePath(role)}>
           <Logo size="sm" />
         </Link>
-        <div className="flex items-center gap-6">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-6">
           {subnav && (
             <nav
+              aria-label="Primary"
               className={cn(
-                "items-center gap-5",
+                // min-w-0 lets this flex item actually shrink below its
+                // content size — without it, a wide subnav (the
+                // customer pill switcher) would push the header wider
+                // than the viewport instead of letting its own
+                // overflow-x-auto take over.
+                "min-w-0 items-center gap-5",
                 tabbar ? "hidden sm:flex" : "flex",
               )}
             >
@@ -50,7 +56,16 @@ export function AppShell({
           <UserMenu role={role} fullName={fullName} avatarUrl={avatarUrl} />
         </div>
       </header>
-      <main className={cn("flex flex-1 flex-col", tabbar && "pb-16 sm:pb-0")}>
+      <main
+        className={cn(
+          "flex flex-1 flex-col",
+          // The tab bar's own height (~64px) plus whatever the device adds
+          // for the home-indicator inset — pb-16 alone left content (and
+          // sticky bars, see NextStepButton) partly hidden behind the tab
+          // bar on notched phones.
+          tabbar && "pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0",
+        )}
+      >
         {children}
       </main>
       {tabbar && <div className="sm:hidden">{tabbar}</div>}

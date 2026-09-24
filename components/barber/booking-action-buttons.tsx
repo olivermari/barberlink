@@ -4,12 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { cn } from "@/lib/utils";
+import { PRIMARY_ACTION } from "@/components/customer/ui";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const NEXT_STEP: Record<string, { status: string; label: string; done: string }> = {
   accepted: { status: "on_the_way", label: "On my way", done: "The customer knows you're on the way." },
-  on_the_way: { status: "in_service", label: "Start service", done: "Service started." },
+  on_the_way: { status: "in_service", label: "I've arrived", done: "Service started." },
   in_service: { status: "completed", label: "Complete job", done: "Job complete." },
 };
 
@@ -32,6 +44,7 @@ export function NextStepButton({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const next = NEXT_STEP[status];
   if (!next) return null;
 
@@ -52,7 +65,7 @@ export function NextStepButton({
 
     if (error) {
       setLoading(false);
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't update that job. Try again."));
       return;
     }
     if (!data) {
@@ -83,9 +96,45 @@ export function NextStepButton({
     router.refresh();
   }
 
+  // Completing a job is irreversible and, on a cash job, immediately
+  // draws commission from the wallet and can take the barber offline —
+  // it sits right above the tab bar, so a confirm step guards against a
+  // stray tap. "On my way" / "Start service" stay single-tap.
+  if (next.status !== "completed") {
+    return (
+      <Button className={cn(PRIMARY_ACTION, className)} onClick={advance} disabled={loading}>
+        {loading ? "Updating…" : next.label}
+      </Button>
+    );
+  }
+
   return (
-    <Button size="lg" className={cn("h-14 text-lg", className)} onClick={advance} disabled={loading}>
-      {loading ? "Updating…" : settlesCash ? "Complete job · cash collected" : next.label}
-    </Button>
+    <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <DialogTrigger render={<Button className={cn(PRIMARY_ACTION, className)} />}>
+        {next.label}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{settlesCash ? "Cash collected?" : "Complete this job?"}</DialogTitle>
+          <DialogDescription>
+            {settlesCash
+              ? `This draws ₱${cashCommission} commission from your wallet and can't be undone. Only confirm once you've collected payment in person.`
+              : "This marks the job done and can't be undone."}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Not yet</DialogClose>
+          <Button
+            onClick={() => {
+              setConfirmOpen(false);
+              advance();
+            }}
+            disabled={loading}
+          >
+            {loading ? "Updating…" : "Yes, complete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

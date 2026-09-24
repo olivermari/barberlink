@@ -8,6 +8,7 @@ import {
   requestNotificationPermission,
 } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Enables the push notifications the trigger-driven backend sends (see
 // supabase/migrations/0026_push_triggers.sql) — this is the one-time
@@ -20,7 +21,9 @@ import { Button } from "@/components/ui/button";
 // component's own effect has had a chance to read the real value — so
 // both renders agree and hydration doesn't mismatch. The real value
 // only shows up on the client-only re-render right after mount.
-export function NotificationToggle() {
+//
+// `boxed` is the customer mobile header's bordered 34px icon button.
+export function NotificationToggle({ boxed }: { boxed?: boolean }) {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
     "unsupported",
   );
@@ -36,12 +39,15 @@ export function NotificationToggle() {
 
   if (permission === "unsupported") return null;
 
+  const shape = cn(boxed && "size-[34px] rounded-[9px] border border-field");
+
   if (permission === "granted") {
     return (
       <Button
         variant="ghost"
         size="icon"
         disabled
+        className={shape}
         aria-label="Notifications enabled"
         title="Notifications enabled"
       >
@@ -56,6 +62,7 @@ export function NotificationToggle() {
         variant="ghost"
         size="icon"
         disabled
+        className={shape}
         aria-label="Notifications blocked — enable them in your browser's site settings"
         title="Notifications blocked — enable them in your browser's site settings"
       >
@@ -68,6 +75,7 @@ export function NotificationToggle() {
     <Button
       variant="ghost"
       size="icon"
+      className={shape}
       aria-label="Enable notifications"
       title="Enable notifications"
       onClick={async () => {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,7 +46,7 @@ export function CancelBookingButton({
     setLoading(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't cancel. Try again."));
       return;
     }
 
