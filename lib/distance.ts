@@ -3,7 +3,7 @@ const EARTH_RADIUS_KM = 6371;
 // Hard cap on how far a barber can be and still count as "near" a
 // customer for browse/Quick Match, regardless of the barber's own
 // (larger) configured service_radius_km.
-export const MAX_MATCH_RADIUS_KM = 1;
+export const MAX_MATCH_RADIUS_KM = 5;
 
 export function distanceKm(
   a: { lat: number; lng: number },

@@ -6,28 +6,41 @@ import { cn } from "@/lib/utils";
 
 export function NavLinks({
   links,
+  badges,
 }: {
   links: { href: string; label: string }[];
+  badges?: Record<string, boolean>;
 }) {
   const pathname = usePathname();
+  // Longest match wins, so "/customer" isn't also active on
+  // "/customer/bookings" (same rule as BottomTabBar).
+  const activeHref = links
+    .map((link) => link.href)
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <>
       {links.map((link) => {
-        const active =
-          pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active = link.href === activeHref;
         return (
           <Link
             key={link.href}
             href={link.href}
             className={cn(
-              "text-sm font-medium transition-colors",
+              "inline-flex items-center gap-1.5 text-sm font-medium transition-colors",
               active
-                ? "text-foreground"
+                ? "font-semibold text-primary"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             {link.label}
+            {badges?.[link.href] && (
+              <span
+                className="size-1.5 rounded-full bg-destructive"
+                aria-label="New activity"
+              />
+            )}
           </Link>
         );
       })}

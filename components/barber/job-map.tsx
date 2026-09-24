@@ -1,92 +1,74 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
-import { NavigationIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BARBER_ICON, YOU_ICON } from "@/components/map/markers";
 
-// Default marker images don't resolve correctly once bundled — point
-// them at the CDN copies instead of wiring up asset imports.
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+type Point = { lat: number; lng: number };
 
-function FitBounds({ points }: { points: [number, number][] }) {
+function Frame({
+  aLat,
+  aLng,
+  bLat,
+  bLng,
+}: {
+  aLat: number;
+  aLng: number;
+  bLat: number | null;
+  bLng: number | null;
+}) {
   const map = useMap();
   useEffect(() => {
-    if (points.length > 1) {
-      map.fitBounds(points, { padding: [24, 24] });
+    if (bLat != null && bLng != null) {
+      map.fitBounds(
+        L.latLngBounds([
+          [aLat, aLng],
+          [bLat, bLng],
+        ]),
+        // No animation: this map sits in a lg:hidden container and the
+        // layout re-renders on every router.refresh() (JobsBadgeProvider),
+        // so a pending pan animation can still be stepping when the
+        // container is hidden/torn down — Leaflet then calls
+        // getComputedStyle on a detached node and throws.
+        { padding: [40, 40], maxZoom: 16, animate: false },
+      );
     } else {
-      map.setView(points[0], 14);
+      map.setView([aLat, aLng], 15, { animate: false });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, JSON.stringify(points)]);
+  }, [map, aLat, aLng, bLat, bLng]);
   return null;
 }
 
-export function JobMap({
-  customerLat,
-  customerLng,
-  customerLabel,
-  barberLat,
-  barberLng,
-}: {
-  customerLat: number;
-  customerLng: number;
-  customerLabel: string;
-  barberLat?: number | null;
-  barberLng?: number | null;
-}) {
-  const hasBarberLocation = barberLat != null && barberLng != null;
-  const points: [number, number][] = hasBarberLocation
-    ? [
-        [barberLat as number, barberLng as number],
-        [customerLat, customerLng],
-      ]
-    : [[customerLat, customerLng]];
+// The barber's view: their own position (ink pin) and the customer's
+// spot (red dot) — the same markers the customer sees. Fills its
+// container.
+export function JobMap({ customer, barber }: { customer: Point | null; barber: Point | null }) {
+  const anchor = customer ?? barber;
+  if (!anchor) return null;
+  const other = customer && barber ? barber : null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="h-48 w-full overflow-hidden rounded-lg border">
-        <MapContainer
-          center={points[0]}
-          zoom={14}
-          scrollWheelZoom={false}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <FitBounds points={points} />
-          <Marker position={[customerLat, customerLng]}>
-            <Popup>{customerLabel}</Popup>
-          </Marker>
-          {hasBarberLocation && (
-            <Marker position={[barberLat as number, barberLng as number]}>
-              <Popup>You</Popup>
-            </Marker>
-          )}
-        </MapContainer>
-      </div>
-      <Button
-        size="sm"
-        variant="outline"
-        nativeButton={false}
-        render={
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          />
-        }
-      >
-        <NavigationIcon />
-        Navigate
-      </Button>
-    </div>
+    <MapContainer
+      center={[anchor.lat, anchor.lng]}
+      zoom={15}
+      scrollWheelZoom={false}
+      zoomControl={false}
+      style={{ height: "100%", width: "100%" }}
+    >
+      <TileLayer
+        className="b2g-tiles"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <Frame
+        aLat={anchor.lat}
+        aLng={anchor.lng}
+        bLat={other?.lat ?? null}
+        bLng={other?.lng ?? null}
+      />
+      {customer && <Marker position={[customer.lat, customer.lng]} icon={YOU_ICON} />}
+      {barber && <Marker position={[barber.lat, barber.lng]} icon={BARBER_ICON} />}
+    </MapContainer>
   );
 }

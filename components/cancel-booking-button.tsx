@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,9 +22,13 @@ const CANCELLABLE_STATUSES = ["queued", "pending", "accepted", "on_the_way"];
 export function CancelBookingButton({
   bookingId,
   status,
+  label = "Cancel booking",
+  className,
 }: {
   bookingId: string;
   status: string;
+  label?: string;
+  className?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -41,7 +46,7 @@ export function CancelBookingButton({
     setLoading(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Couldn't cancel. Try again."));
       return;
     }
 
@@ -52,8 +57,8 @@ export function CancelBookingButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        Cancel booking
+      <DialogTrigger render={<Button variant="outline" className={className} />}>
+        {label}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

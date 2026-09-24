@@ -9,19 +9,27 @@ Next.js (App Router) + TypeScript + Tailwind v4 + shadcn/ui ("base-nova" style, 
 ## Gotchas that aren't obvious from the code
 
 - **shadcn Button uses Base UI, not Radix** — there's no `asChild`. To render a `Button` as a different element (e.g. a `Link`), use `render={<Link href="..." />}` with the text as children, not `<Button asChild><Link>...</Link></Button>`. If the render target isn't a native `<button>` (e.g. an `<a>`), pass `nativeButton={false}` or Base UI logs a console warning.
-- **Supabase Realtime silently drops events without this**: before `.channel(...).subscribe()`, call `supabase.auth.getSession()` and `supabase.realtime.setAuth(session.access_token)`. Without it the channel joins fine (`SUBSCRIBED`) but RLS blocks every event server-side with no error. See `components/booking-status-tracker.tsx`.
+- **Supabase Realtime silently drops events without this**: before `.channel(...).subscribe()`, call `supabase.auth.getSession()` and `supabase.realtime.setAuth(session.access_token)`. Without it the channel joins fine (`SUBSCRIBED`) but RLS blocks every event server-side with no error. See `components/customer/booking-view.tsx`.
 - **Migrations run through the Supabase CLI**, not the dashboard SQL editor: `npx supabase db push` (project is linked; `npx supabase login` needs a one-time manual browser auth in the user's own terminal, not through an agent — same for `git push`, which needs Git Credential Manager's browser flow run manually once). Ad-hoc queries: `npx supabase db query --linked "..."`.
 - **RLS**: `profiles` is public-read (`profiles_public_select`, `using (true)`) — barber names and reviewer names need to be visible to everyone, only `full_name`/`phone`/`avatar_url` live there (no credentials). Most other tables follow "public read, owner-only write."
 - **Booking dispatch is server-side, not app logic**: a `BEFORE INSERT` trigger (`0007_booking_dispatch.sql`) sets a new booking's status to `pending` or `queued` depending on whether the barber already has an active job — the client never sets `status` on insert. An `AFTER UPDATE` trigger promotes the nearest `queued` booking (haversine distance to the barber's `current_lat/current_lng`, not FIFO) whenever a barber's active job ends. `barbers_busy_status()` is a `security definer` RPC so Quick Match can check availability without bookings RLS leaking other customers' data.
+- **Push notifications are dispatched from Postgres, not from the client**: `AFTER` triggers (`0026_push_triggers.sql`) call the shared `push_notify()` helper (`0025_push_dispatch_infra.sql`), which fires an async `pg_net.http_post` to `/api/push/dispatch` — the client-side Realtime listeners (`ActiveBookingBar`, `JobsBadgeProvider`, `AdminNotificationProvider`) still show the in-page toast, but a mobile browser suspends a backgrounded tab's JS within seconds, so only a server-triggered push actually reaches the notification bar while it's minimized. `push_notify()`'s dispatch URL is a hardcoded literal (not sensitive) but the shared secret proving a request came from this database lives in **Supabase Vault**, never a migration file (repo is public) — inserted once via `npx supabase db query --linked "select vault.create_secret('...', 'push_dispatch_secret')"`. Local testing needs the dispatch URL temporarily repointed at a publicly reachable tunnel (Supabase's cloud Postgres can't reach `localhost`) by running `create or replace function public.push_notify(...)` ad hoc with a different URL, then reapplying the migration to restore the production one.
 
 ## Booking model (current)
 
 Same-day on-demand, not future scheduling — `bookings.requested_at` defaults to `now()`. Two paths: **Quick Match** (auto-picks the nearest free barber, no surcharge) and **Choose Your Barber** (pick from a profile, +₱50 surcharge, queues if busy). See `README.md` roadmap for build phases and what's shipped.
 
+## Deployment
+
+Production is Vercel Hobby (functions in `sin1`, next to Supabase's `ap-southeast-1`) at barbero2go.com, deployed from `main`. `vercel.json` also runs a daily cron to `/api/keep-alive` so the free Supabase project doesn't pause. The simulated-payment fallback refuses to run when `VERCEL_ENV === "production"`.
+
 ## Test accounts (this Supabase project only)
 
-- Customer: `om3893712+customer2@gmail.com` / `testpass123`
-- Barber (no barber UI yet — Phase 5): `om3893712+barber1@gmail.com` / `testpass123`
+Passwords aren't kept here — the repo is public and the app is live. Ask the user.
+
+- Customer: `om3893712+customer2@gmail.com`
+- Barber: `om3893712+barber1@gmail.com`
+- Admin: `om3893712+admin1@gmail.com` (signed up as customer, then promoted with `update profiles set role = 'admin' where id = '...'` — signup has no admin option by design)
 
 <!-- BEGIN:nextjs-agent-rules -->
 

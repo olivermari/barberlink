@@ -4,74 +4,137 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
+import { cn } from "@/lib/utils";
+import { PRIMARY_ACTION } from "@/components/customer/ui";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
-const NEXT_STATUS: Record<string, { status: string; label: string }> = {
-  accepted: { status: "on_the_way", label: "On my way" },
-  on_the_way: { status: "in_service", label: "Start service" },
-  in_service: { status: "completed", label: "Complete" },
+const NEXT_STEP: Record<string, { status: string; label: string; done: string }> = {
+  accepted: { status: "on_the_way", label: "On my way", done: "The customer knows you're on the way." },
+  on_the_way: { status: "in_service", label: "I've arrived", done: "Service started." },
+  in_service: { status: "completed", label: "Complete job", done: "Job complete." },
 };
 
-export function BookingActionButtons({
+// The one primary action on an active job (B3 / B6). Accept and Decline
+// live on the incoming-request card instead.
+export function NextStepButton({
   bookingId,
+  barberId,
   status,
+  cashCommission,
+  className,
 }: {
   bookingId: string;
+  barberId: string;
   status: string;
+  // Set for cash jobs: completing one settles it and draws this from the
+  // wallet (0018).
+  cashCommission?: number | null;
+  className?: string;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const next = NEXT_STEP[status];
+  if (!next) return null;
 
-  async function setStatus(next: string, successMessage: string) {
-    setLoading(next);
+  const settlesCash = next.status === "completed" && cashCommission != null;
+
+  async function advance() {
+    setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase
+    // Guarded on the current status so a customer's cancel that lands
+    // first isn't overwritten.
+    const { data, error } = await supabase
       .from("bookings")
-      .update({ status: next })
-      .eq("id", bookingId);
-    setLoading(null);
+      .update({ status: next.status })
+      .eq("id", bookingId)
+      .eq("status", status)
+      .select("id")
+      .maybeSingle();
 
     if (error) {
-      toast.error(error.message);
+      setLoading(false);
+      toast.error(friendlyError(error, "Couldn't update that job. Try again."));
+      return;
+    }
+    if (!data) {
+      setLoading(false);
+      toast.info("This booking changed — here's the latest.");
+      router.refresh();
       return;
     }
 
-    toast.success(successMessage);
+    if (settlesCash) {
+      const { data: wallet } = await supabase
+        .from("barber_profiles")
+        .select("token_balance")
+        .eq("id", barberId)
+        .single();
+      const balance = Number(wallet?.token_balance ?? 0);
+      toast.success(`Job complete — ₱${cashCommission} commission drawn from your wallet.`);
+      if (balance < 0) {
+        toast.warning(
+          `Your wallet is at ₱${balance}, so you're offline. Top up on Earnings to take new jobs.`,
+        );
+      }
+    } else {
+      toast.success(next.done);
+    }
+
+    setLoading(false);
     router.refresh();
   }
 
-  if (status === "pending") {
+  // Completing a job is irreversible and, on a cash job, immediately
+  // draws commission from the wallet and can take the barber offline —
+  // it sits right above the tab bar, so a confirm step guards against a
+  // stray tap. "On my way" / "Start service" stay single-tap.
+  if (next.status !== "completed") {
     return (
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={loading !== null}
-          onClick={() => setStatus("declined", "Booking declined.")}
-        >
-          {loading === "declined" ? "Declining..." : "Decline"}
-        </Button>
-        <Button
-          size="sm"
-          disabled={loading !== null}
-          onClick={() => setStatus("accepted", "Booking accepted.")}
-        >
-          {loading === "accepted" ? "Accepting..." : "Accept"}
-        </Button>
-      </div>
+      <Button className={cn(PRIMARY_ACTION, className)} onClick={advance} disabled={loading}>
+        {loading ? "Updating…" : next.label}
+      </Button>
     );
   }
 
-  const next = NEXT_STATUS[status];
-  if (!next) return null;
-
   return (
-    <Button
-      size="sm"
-      disabled={loading !== null}
-      onClick={() => setStatus(next.status, `Marked as "${next.label}".`)}
-    >
-      {loading === next.status ? "Updating..." : next.label}
-    </Button>
+    <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <DialogTrigger render={<Button className={cn(PRIMARY_ACTION, className)} />}>
+        {next.label}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{settlesCash ? "Cash collected?" : "Complete this job?"}</DialogTitle>
+          <DialogDescription>
+            {settlesCash
+              ? `This draws ₱${cashCommission} commission from your wallet and can't be undone. Only confirm once you've collected payment in person.`
+              : "This marks the job done and can't be undone."}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Not yet</DialogClose>
+          <Button
+            onClick={() => {
+              setConfirmOpen(false);
+              advance();
+            }}
+            disabled={loading}
+          >
+            {loading ? "Updating…" : "Yes, complete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
