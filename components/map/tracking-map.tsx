@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useAnimatedMarker } from "@/lib/use-animated-marker";
+import type { RouteView } from "@/lib/use-route";
 import { BARBER_ICON, YOU_ICON, barberVehicleIcon } from "./markers";
 
 // Keeps both pins in view on first frame, then only re-frames later if
@@ -52,26 +53,37 @@ function Frame({
   return null;
 }
 
-// Glides toward each new position instead of snapping, and rotates to
-// face the direction of travel — see lib/use-animated-marker.ts. Falls
-// back to the plain stationary pin until there's a second fix to
-// compute a heading from.
-function AnimatedBarberMarker({ target }: { target: { lat: number; lng: number } }) {
-  const { position, heading } = useAnimatedMarker(target);
-  if (!position) return null;
-  // Rounded so react-leaflet isn't asked to rebuild the icon every
-  // animation frame — see barberVehicleIcon's own comment.
-  const icon = heading != null ? barberVehicleIcon(Math.round(heading / 5) * 5) : BARBER_ICON;
-  return <Marker position={[position.lat, position.lng]} icon={icon} />;
-}
+const ROUTE_STYLE = { color: "#3b6fd8", weight: 4, opacity: 0.9, lineCap: "round" as const };
 
 export function TrackingMap({
   customer,
   barber,
+  route,
 }: {
   customer: { lat: number; lng: number };
   barber: { lat: number; lng: number } | null;
+  // Road-following route from lib/use-route.ts; null falls back to a
+  // straight line (OSRM loading or unavailable).
+  route?: RouteView | null;
 }) {
+  // Glides toward each new position instead of snapping, and rotates to
+  // face the direction of travel — see lib/use-animated-marker.ts.
+  // Lifted to this level so the route line starts at the gliding pin
+  // rather than at the latest ping the pin hasn't reached yet.
+  const { position, heading } = useAnimatedMarker(barber);
+  // Rounded so react-leaflet isn't asked to rebuild the icon every
+  // animation frame — see barberVehicleIcon's own comment. Plain pin
+  // until there's a second fix to compute a heading from.
+  const icon = heading != null ? barberVehicleIcon(Math.round(heading / 5) * 5) : BARBER_ICON;
+  const line: [number, number][] | null = position
+    ? route
+      ? [[position.lat, position.lng], ...route.points.slice(1)]
+      : [
+          [position.lat, position.lng],
+          [customer.lat, customer.lng],
+        ]
+    : null;
+
   return (
     <MapContainer
       center={[customer.lat, customer.lng]}
@@ -91,19 +103,9 @@ export function TrackingMap({
         bLat={barber?.lat ?? null}
         bLng={barber?.lng ?? null}
       />
-      {/* The route line from the Customer UI's Track screen — straight,
-          since there's no routing service behind it. */}
-      {barber && (
-        <Polyline
-          positions={[
-            [barber.lat, barber.lng],
-            [customer.lat, customer.lng],
-          ]}
-          pathOptions={{ color: "#3b6fd8", weight: 4, opacity: 0.9, lineCap: "round" }}
-        />
-      )}
+      {line && <Polyline positions={line} pathOptions={ROUTE_STYLE} />}
       <Marker position={[customer.lat, customer.lng]} icon={YOU_ICON} />
-      {barber && <AnimatedBarberMarker target={barber} />}
+      {position && <Marker position={[position.lat, position.lng]} icon={icon} />}
     </MapContainer>
   );
 }

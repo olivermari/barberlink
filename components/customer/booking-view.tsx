@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { distanceKm } from "@/lib/distance";
+import { useRoute } from "@/lib/use-route";
 import { formatShortDate, PAYMENT_METHOD_LABEL } from "@/lib/format";
 import { REVIEW_TAG_LABEL } from "@/lib/review-tags";
 import { cn } from "@/lib/utils";
@@ -232,6 +233,17 @@ export function BookingView({
     return () => clearInterval(timer);
   }, [status, booking.id]);
 
+  // Road-following route and ETA (OSRM) while the barber is heading
+  // over; null falls back to the straight line and etaMinutes() below.
+  // Called before the early returns so hook order stays stable.
+  const route = useRoute(
+    barberPos,
+    booking.addressLat != null && booking.addressLng != null
+      ? { lat: booking.addressLat, lng: booking.addressLng }
+      : null,
+    status === "accepted" || status === "on_the_way",
+  );
+
   const methodLabel = PAYMENT_METHOD_LABEL[booking.paymentMethod ?? ""] ?? "Payment";
 
   if (status === "completed") {
@@ -265,7 +277,11 @@ export function BookingView({
       ? { lat: booking.addressLat, lng: booking.addressLng }
       : null;
   const km = barberPos && spot ? distanceKm(barberPos, spot) : null;
+  // "Arrived" means at the door, so it stays on straight-line distance;
+  // what's shown to the customer uses the road route when there is one.
   const arrived = status === "on_the_way" && km != null && km <= ARRIVED_KM;
+  const shownKm = route?.remainingKm ?? km;
+  const shownEta = route?.etaMin ?? (km != null ? etaMinutes(km) : null);
   const step = stepFor(status, arrived);
   const posAgeSeconds = posUpdatedAt != null ? Math.round((nowTick - posUpdatedAt) / 1000) : null;
   // A frozen pin still looks like a precise live ETA otherwise — call
@@ -281,7 +297,10 @@ export function BookingView({
       ? {
           Icon: CarIcon,
           title: "Barber is on the way",
-          sub: km != null ? `ETA ${etaMinutes(km)} min · ${km.toFixed(1)} km` : "On the way to you",
+          sub:
+            shownKm != null && shownEta != null
+              ? `ETA ${shownEta} min · ${shownKm.toFixed(1)} km`
+              : "On the way to you",
         }
       : status === "in_service"
         ? { Icon: ScissorsIcon, title: "Your cut is in progress", sub: "Sit back — you're in good hands." }
@@ -395,15 +414,15 @@ export function BookingView({
         {/* Map, with status + ETA overlaid on web */}
         <div className="relative isolate min-h-[240px] flex-1 overflow-hidden bg-[#ece8dd]">
           <div className="absolute inset-0 z-0">
-            {spot && <TrackingMap customer={spot} barber={barberPos} />}
+            {spot && <TrackingMap customer={spot} barber={barberPos} route={route} />}
           </div>
           <div className="absolute top-[18px] left-[18px] z-[500] hidden items-center gap-3.5 rounded-[11px] bg-foreground px-4 py-[13px] text-white shadow-[0_8px_24px_rgba(22,19,15,0.18)] lg:flex">
             <span className="text-[15px] font-bold">{STEP_LABELS[step]}</span>
-            {status === "on_the_way" && km != null && (
+            {status === "on_the_way" && shownKm != null && shownEta != null && (
               <>
                 <span className="h-[18px] w-px bg-[#3a342c]" />
-                <span className="text-[15px] font-bold">ETA {etaMinutes(km)} min</span>
-                <span className="text-[13px] text-[#a49c90]">{km.toFixed(1)} km</span>
+                <span className="text-[15px] font-bold">ETA {shownEta} min</span>
+                <span className="text-[13px] text-[#a49c90]">{shownKm.toFixed(1)} km</span>
               </>
             )}
           </div>

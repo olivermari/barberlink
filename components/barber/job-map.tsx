@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
+import { useRoute } from "@/lib/use-route";
 import { BARBER_ICON, YOU_ICON } from "@/components/map/markers";
 
 type Point = { lat: number; lng: number };
@@ -44,6 +45,10 @@ function Frame({
 // spot (red dot) — the same markers the customer sees. Fills its
 // container.
 export function JobMap({ customer, barber }: { customer: Point | null; barber: Point | null }) {
+  // The same road route the customer sees (lib/use-route.ts); requests
+  // are shared through its cache when this map renders in more than one
+  // layout. Null falls back to no line.
+  const route = useRoute(barber, customer, customer != null && barber != null);
   const anchor = customer ?? barber;
   if (!anchor) return null;
   const other = customer && barber ? barber : null;
@@ -67,6 +72,12 @@ export function JobMap({ customer, barber }: { customer: Point | null; barber: P
         bLat={other?.lat ?? null}
         bLng={other?.lng ?? null}
       />
+      {route && (
+        <Polyline
+          positions={route.points}
+          pathOptions={{ color: "#3b6fd8", weight: 4, opacity: 0.9, lineCap: "round" }}
+        />
+      )}
       {customer && <Marker position={[customer.lat, customer.lng]} icon={YOU_ICON} />}
       {barber && <Marker position={[barber.lat, barber.lng]} icon={BARBER_ICON} />}
     </MapContainer>
