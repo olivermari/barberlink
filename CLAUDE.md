@@ -31,6 +31,8 @@ Passwords aren't kept here — the repo is public and the app is live. Ask the u
 - Barber: `om3893712+barber1@gmail.com`
 - Admin: `om3893712+admin1@gmail.com` (signed up as customer, then promoted with `update profiles set role = 'admin' where id = '...'` — signup has no admin option by design)
 
+**Roles are granted, never chosen** (`0032_lock_roles.sql`): every signup becomes a `customer` whatever metadata the client sends, and a `profiles_guard` trigger rejects role changes from API requests unless the caller is an admin. Barbers apply on the marketing site (`barbero2go.com/barber-partners`), pass on-site validation, sign up in the app as a customer, and are then promoted the same way as the admin above (`role = 'barber'`). The app has no barber signup path — don't add one back.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

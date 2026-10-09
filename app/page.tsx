@@ -5,6 +5,7 @@ import { ArrowRightIcon, MapPinIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
 import { PhotoPlaceholder } from "@/components/landing/photo-placeholder";
+import { BARBER_APPLY_URL } from "@/lib/marketing-site";
 
 // Archivo (the brand face) now loads in the root layout so the
 // wordmark is identical app-wide. This serif is the landing page's own
@@ -24,7 +25,7 @@ const eyebrow =
 const BOOK_PILLS = [
   { label: "I need a haircut today", href: "/signup" },
   { label: "I want to pick my barber", href: "/signup" },
-  { label: "I'm a barber — sign me up", href: "/signup?role=barber" },
+  { label: "I'm a barber — apply to join", href: BARBER_APPLY_URL },
 ];
 
 const HOW_TO_BOOK = [

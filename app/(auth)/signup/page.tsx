@@ -1,14 +1,14 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LockIcon, MailIcon, UserIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { AuthField, AuthPasswordField } from "@/components/auth/auth-fields";
-import { SegButton, Segmented } from "@/components/customer/ui";
 import { Button } from "@/components/ui/button";
+import { BARBER_APPLY_URL } from "@/lib/marketing-site";
 
 export default function SignupPage() {
   return (
@@ -20,10 +20,6 @@ export default function SignupPage() {
 
 function SignupForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [role, setRole] = useState<"customer" | "barber">(
-    searchParams.get("role") === "barber" ? "barber" : "customer",
-  );
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,7 +37,9 @@ function SignupForm() {
       email,
       password,
       options: {
-        data: { role, full_name: fullName },
+        // Every signup is a customer: the database ignores any role sent
+        // here (0032). Barbers apply on the marketing site instead.
+        data: { full_name: fullName },
       },
     });
 
@@ -58,7 +56,7 @@ function SignupForm() {
       return;
     }
 
-    router.push(role === "barber" ? "/barber" : "/customer");
+    router.push("/customer");
     router.refresh();
   }
 
@@ -81,25 +79,22 @@ function SignupForm() {
   return (
     <AuthScreen
       title="Let’s get you started"
-      subtitle="Sign up as a customer, or as a barber to start taking bookings."
+      subtitle="Create your account and book a barber to your door."
       footer={
         <>
           Already have an account?{" "}
           <Link href="/login" className="font-bold text-primary">
             Log in
           </Link>
+          <span className="mt-2 block">
+            Are you a barber?{" "}
+            <a href={BARBER_APPLY_URL} className="font-bold text-primary">
+              Apply to join
+            </a>
+          </span>
         </>
       }
     >
-      <Segmented className="lg:mt-1">
-        <SegButton active={role === "customer"} onClick={() => setRole("customer")}>
-          Customer
-        </SegButton>
-        <SegButton active={role === "barber"} onClick={() => setRole("barber")}>
-          Barber
-        </SegButton>
-      </Segmented>
-
       <form onSubmit={handleSubmit} className="flex flex-col gap-[13px] lg:gap-[15px]">
         <AuthField
           icon={UserIcon}
@@ -135,7 +130,7 @@ function SignupForm() {
         )}
 
         <Button type="submit" disabled={loading} className="h-[52px] w-full rounded-xl text-base font-bold lg:h-[54px]">
-          {loading ? "Creating account…" : `Sign up as ${role}`}
+          {loading ? "Creating account…" : "Create account"}
         </Button>
       </form>
     </AuthScreen>
