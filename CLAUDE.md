@@ -21,7 +21,7 @@ Same-day on-demand, not future scheduling — `bookings.requested_at` defaults t
 
 ## Deployment
 
-Production is Vercel Hobby (functions in `sin1`, next to Supabase's `ap-southeast-1`) at barbero2go.com, deployed from `main`. `vercel.json` also runs a daily cron to `/api/keep-alive` so the free Supabase project doesn't pause. The simulated-payment fallback refuses to run when `VERCEL_ENV === "production"`.
+Production is Vercel Hobby (functions in `sin1`, next to Supabase's `ap-southeast-1`) at **app.barbero2go.com**, deployed from `main`. The apex `barbero2go.com` (with `www` 308-redirecting to it) is the separate marketing site (private repo `olivermari/barbero2go-site`, its own Vercel project), whose Log in / Sign up links point here. Anything that needs the app's absolute URL — the `push_notify()` dispatch literal, the PayMongo webhook (`/api/payments/webhook`), Supabase's Site URL and redirect list — uses `app.barbero2go.com`, never the apex. `vercel.json` also runs a daily cron to `/api/keep-alive` so the free Supabase project doesn't pause. The simulated-payment fallback refuses to run when `VERCEL_ENV === "production"`.
 
 ## Test accounts (this Supabase project only)
 
