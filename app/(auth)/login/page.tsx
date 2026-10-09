@@ -7,7 +7,7 @@ import { LockIcon, MailIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { roleHomePath } from "@/lib/role-path";
 import { AuthScreen } from "@/components/auth/auth-screen";
-import { AuthField, AuthPasswordField, SocialSignIn } from "@/components/auth/auth-fields";
+import { AuthField, AuthPasswordField } from "@/components/auth/auth-fields";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -97,7 +97,11 @@ export default function LoginPage() {
           required
         />
 
-        <Link href="/forgot-password" className="self-end text-[13px] font-bold text-primary lg:text-[13.5px]">
+        {/* -my-3 + py-3 = a 44px tap target without changing the layout. */}
+        <Link
+          href="/forgot-password"
+          className="-my-3 self-end py-3 text-[13px] font-bold text-primary hover:underline hover:underline-offset-4 lg:text-[13.5px]"
+        >
           Forgot password?
         </Link>
 
@@ -111,7 +115,6 @@ export default function LoginPage() {
           {loading ? "Logging in…" : "Log In"}
         </Button>
       </form>
-      <SocialSignIn />
     </AuthScreen>
   );
 }
