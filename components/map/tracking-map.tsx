@@ -62,8 +62,8 @@ export function TrackingMap({
 }: {
   customer: { lat: number; lng: number };
   barber: { lat: number; lng: number } | null;
-  // Road-following route from lib/use-route.ts; null falls back to a
-  // straight line (OSRM loading or unavailable).
+  // Road-following route from lib/use-route.ts; null draws no line
+  // (OSRM loading or unavailable).
   route?: RouteView | null;
 }) {
   // Glides toward each new position instead of snapping, and rotates to
@@ -75,14 +75,10 @@ export function TrackingMap({
   // animation frame — see barberVehicleIcon's own comment. Plain pin
   // until there's a second fix to compute a heading from.
   const icon = heading != null ? barberVehicleIcon(Math.round(heading / 5) * 5) : BARBER_ICON;
-  const line: [number, number][] | null = position
-    ? route
-      ? [[position.lat, position.lng], ...route.points.slice(1)]
-      : [
-          [position.lat, position.lng],
-          [customer.lat, customer.lng],
-        ]
-    : null;
+  // No route (loading, or OSRM unavailable) means no line at all — a
+  // straight line across buildings reads as wrong, not as approximate.
+  const line: [number, number][] | null =
+    position && route ? [[position.lat, position.lng], ...route.points.slice(1)] : null;
 
   return (
     <MapContainer

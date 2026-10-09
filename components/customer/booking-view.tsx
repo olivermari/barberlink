@@ -233,15 +233,16 @@ export function BookingView({
     return () => clearInterval(timer);
   }, [status, booking.id]);
 
-  // Road-following route and ETA (OSRM) while the barber is heading
-  // over; null falls back to the straight line and etaMinutes() below.
-  // Called before the early returns so hook order stays stable.
+  // Road-following route and ETA (OSRM) in every state the map shows the
+  // barber, including while waiting for them to accept; null draws no
+  // line and the ETA falls back to etaMinutes() below. Called before the
+  // early returns so hook order stays stable.
   const route = useRoute(
     barberPos,
     booking.addressLat != null && booking.addressLng != null
       ? { lat: booking.addressLat, lng: booking.addressLng }
       : null,
-    status === "accepted" || status === "on_the_way",
+    ["queued", "pending", "accepted", "on_the_way"].includes(status),
   );
 
   const methodLabel = PAYMENT_METHOD_LABEL[booking.paymentMethod ?? ""] ?? "Payment";

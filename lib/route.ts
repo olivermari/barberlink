@@ -24,8 +24,11 @@ export function fetchRoute(from: LatLng, to: LatLng): Promise<Route | null> {
   const hit = cache.get(key);
   if (hit) return hit;
 
+  // Timed out so a hung request can't sit in the cache forever and pin
+  // the map to the fallback.
   const request = fetch(
     `${OSRM_URL}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`,
+    { signal: AbortSignal.timeout(8000) },
   )
     .then((res) => (res.ok ? res.json() : null))
     .then((json) => {

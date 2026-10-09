@@ -20,10 +20,14 @@ const OFF_ROUTE_KM = 0.1;
 const PROGRESS_KM = 0.15;
 const REFRESH_MS = 60_000;
 const MIN_GAP_MS = 15_000;
+// While there's no usable route (first load failed, OSRM timed out), try
+// again on this clock — a parked barber sends no new positions to
+// trigger a retry on their own.
+const RETRY_MS = 20_000;
 
 // Road-following route and ETA from the barber to the customer. Null
-// while loading, when disabled, or if OSRM fails — callers fall back to
-// the straight line and the rough ETA.
+// while loading, when disabled, or if OSRM fails — callers then draw no
+// line and fall back to the rough ETA.
 export function useRoute(from: LatLng | null, to: LatLng | null, enabled: boolean): RouteView | null {
   const [base, setBase] = useState<{ route: Route; origin: LatLng; to: LatLng } | null>(null);
   const lastAttemptRef = useRef(0);
@@ -45,6 +49,17 @@ export function useRoute(from: LatLng | null, to: LatLng | null, enabled: boolea
   const fLng = from?.lng;
   const tLat = to?.lat;
   const tLng = to?.lng;
+
+  const ready = enabled && fLat != null && fLng != null && tLat != null && tLng != null;
+  const haveRoute =
+    base != null && tLat != null && tLng != null && distanceKm(base.to, { lat: tLat, lng: tLng }) < 0.01;
+  const [retryTick, setRetryTick] = useState(0);
+
+  useEffect(() => {
+    if (!ready || haveRoute) return;
+    const timer = setInterval(() => setRetryTick((t) => t + 1), RETRY_MS);
+    return () => clearInterval(timer);
+  }, [ready, haveRoute]);
 
   useEffect(() => {
     if (!enabled || fLat == null || fLng == null || tLat == null || tLng == null) return;
@@ -69,7 +84,8 @@ export function useRoute(from: LatLng | null, to: LatLng | null, enabled: boolea
         setBase({ route, origin, to: dest });
       }
     });
-  }, [enabled, fLat, fLng, tLat, tLng, base]);
+    // retryTick only re-runs this check; the rate limit above still applies.
+  }, [enabled, fLat, fLng, tLat, tLng, base, retryTick]);
 
   return useMemo(() => {
     if (!enabled || !base || fLat == null || fLng == null || tLat == null || tLng == null) return null;
