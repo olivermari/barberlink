@@ -78,6 +78,20 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
+  // The admin area doesn't exist for anyone but a signed-in admin. Everyone
+  // else, signed out or not, gets the same 404 as a made-up URL: no redirect
+  // to /login that would confirm there's something behind it. (Rewriting to
+  // a path no route matches renders the app's ordinary not-found page.)
+  function notFound() {
+    const response = NextResponse.rewrite(new URL("/_not-a-page", request.url));
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie);
+    });
+    return response;
+  }
+  const isAdminArea = protectedPrefix === "/admin" || isTwoFactorPage;
+  if (isAdminArea && role !== "admin") return notFound();
+
   if (protectedPrefix) {
     if (!user) return redirectTo("/login");
     if (role && role !== ROLE_FOR_PREFIX[protectedPrefix]) {
@@ -86,11 +100,9 @@ export async function updateSession(request: NextRequest) {
     if (role === "admin" && !adminHasSecondFactor) return redirectTo("/two-factor");
   }
 
-  // The code step is only for admins who haven't passed it yet.
-  if (isTwoFactorPage) {
-    if (!user) return redirectTo("/login");
-    if (role && (role !== "admin" || adminHasSecondFactor)) return redirectTo(roleHomePath(role));
-  }
+  // The code step is only for admins who haven't passed it yet (anyone who
+  // isn't an admin was already turned away above).
+  if (isTwoFactorPage && adminHasSecondFactor) return redirectTo("/admin");
 
   // already signed in — no reason to see the login/signup forms again
   if (isAuthPage && user && role) {
