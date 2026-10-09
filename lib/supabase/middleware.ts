@@ -46,9 +46,10 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const protectedPrefix = matchProtectedPrefix(pathname);
   const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const isTwoFactorPage = pathname === "/two-factor";
 
   let role: UserRole | undefined;
-  if (user && (protectedPrefix || isAuthPage)) {
+  if (user && (protectedPrefix || isAuthPage || isTwoFactorPage)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -56,6 +57,17 @@ export async function updateSession(request: NextRequest) {
       .single();
     role = profile?.role;
   }
+
+  // Admins sign in with a password AND an authenticator-app code. A session
+  // that has only done the password step is aal1; it can't open /admin (and
+  // the database won't treat it as admin either — see 0033).
+  let adminHasSecondFactor = false;
+  if (role === "admin") {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    adminHasSecondFactor = aal?.currentLevel === "aal2";
+  }
+  const homeFor = (r: UserRole) =>
+    r === "admin" && !adminHasSecondFactor ? "/two-factor" : roleHomePath(r);
 
   function redirectTo(pathname: string) {
     const redirectResponse = NextResponse.redirect(new URL(pathname, request.url));
@@ -69,13 +81,20 @@ export async function updateSession(request: NextRequest) {
   if (protectedPrefix) {
     if (!user) return redirectTo("/login");
     if (role && role !== ROLE_FOR_PREFIX[protectedPrefix]) {
-      return redirectTo(roleHomePath(role));
+      return redirectTo(homeFor(role));
     }
+    if (role === "admin" && !adminHasSecondFactor) return redirectTo("/two-factor");
+  }
+
+  // The code step is only for admins who haven't passed it yet.
+  if (isTwoFactorPage) {
+    if (!user) return redirectTo("/login");
+    if (role && (role !== "admin" || adminHasSecondFactor)) return redirectTo(roleHomePath(role));
   }
 
   // already signed in — no reason to see the login/signup forms again
   if (isAuthPage && user && role) {
-    return redirectTo(roleHomePath(role));
+    return redirectTo(homeFor(role));
   }
 
   return supabaseResponse;

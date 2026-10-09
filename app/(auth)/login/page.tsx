@@ -59,7 +59,8 @@ export default function LoginPage() {
     }
 
     setLoading(false);
-    router.push(roleHomePath(profile?.role));
+    // Admins go on to the authenticator-code step before /admin opens.
+    router.push(profile?.role === "admin" ? "/two-factor" : roleHomePath(profile?.role));
     router.refresh();
   }
 
