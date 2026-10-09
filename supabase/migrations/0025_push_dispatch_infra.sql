@@ -3,7 +3,7 @@
 -- (pg_net, async/fire-and-forget) to our own /api/push/dispatch route,
 -- which holds the actual web-push library and VAPID keys.
 --
--- The dispatch URL isn't sensitive (it's just barbero2go.com), so it's a
+-- The dispatch URL isn't sensitive (it's just app.barbero2go.com), so it's a
 -- literal in this function — Supabase's hosted Postgres doesn't grant
 -- `alter database ... set`, which is the usual way to make a plain
 -- setting like this editable without a migration, so a literal plus
@@ -32,7 +32,7 @@ create or replace function public.push_notify(
 returns void as $$
 declare
   dispatch_secret text;
-  dispatch_url text := 'https://barbero2go.com/api/push/dispatch';
+  dispatch_url text := 'https://app.barbero2go.com/api/push/dispatch';
 begin
   if target_user_ids is null or array_length(target_user_ids, 1) is null then
     return;
