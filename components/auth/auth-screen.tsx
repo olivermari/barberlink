@@ -5,9 +5,10 @@ import { Logo, LogoMark } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 // The Customer UI's log-in frame, one tree that reflows by breakpoint.
-// Phones: a compact dark banner (logo + headline, about a quarter of the
-// screen) and a white sheet that fills the rest, so the whole form, submit
-// button included, fits on one screen even on a 320x568 phone. Tablets keep
+// Phones: the form is a white sheet anchored to the bottom, sized to its
+// content, and the photo banner (logo top, headline bottom) grows to fill
+// whatever height is left, so tall phones get a big photo instead of empty
+// white space, and a 320x568 phone still fits the whole form. Tablets keep
 // that layout with the form capped at 440px instead of stretching.
 // Desktop: a photo panel (headline, three proof points) beside
 // a 480px form column. Sign-up and the other auth pages use the same frame.
@@ -35,7 +36,7 @@ export function AuthScreen({
   return (
     <div className="flex min-h-svh flex-col bg-[#16130f] lg:grid lg:grid-cols-[minmax(0,1fr)_480px] lg:bg-white">
       {/* Hero (phones) / ink panel (desktop) */}
-      <section className="relative flex flex-none flex-col overflow-hidden bg-[#241f19] px-5 pt-[calc(16px+env(safe-area-inset-top))] pb-[46px] text-white sm:px-8 sm:pb-[54px] lg:min-h-svh lg:p-10">
+      <section className="relative flex min-h-[168px] flex-1 flex-col overflow-hidden bg-[#241f19] px-5 pt-[calc(16px+env(safe-area-inset-top))] pb-[46px] text-white sm:px-8 sm:pb-[54px] lg:min-h-svh lg:flex-none lg:p-10">
         <Image
           src="/images/auth-barber.jpg"
           alt=""
@@ -56,7 +57,7 @@ export function AuthScreen({
         <Link href="/" className="relative w-fit text-white">
           <Logo className="text-[23px] lg:text-[26px]" />
         </Link>
-        <div className="relative mt-3 flex flex-col gap-2 sm:mt-4 sm:gap-3 lg:mt-auto lg:gap-4">
+        <div className="relative mt-auto flex flex-col gap-2 pt-3 sm:gap-3 lg:gap-4">
           <p className="flex flex-col gap-0.5 text-[26px] leading-[1.1] font-extrabold tracking-[-0.03em] min-[380px]:text-[30px] sm:text-[36px] lg:text-[46px] lg:leading-[1.05]">
             <span>Great hair.</span>
             <span className="text-[#e8402f]">Right at your door.</span>
@@ -86,8 +87,8 @@ export function AuthScreen({
       </section>
 
       {/* Form sheet (phones) / form column (desktop) */}
-      <section className="relative -mt-[26px] flex flex-1 flex-col rounded-t-[26px] bg-white px-5 pt-[22px] pb-[calc(20px+env(safe-area-inset-bottom))] text-foreground shadow-[0_-14px_40px_rgba(22,19,15,0.22)] sm:px-8 sm:pt-8 lg:mt-0 lg:min-h-svh lg:flex-none lg:rounded-none lg:bg-[#faf8f3] lg:px-11 lg:py-12 lg:shadow-none lg:[background-image:radial-gradient(#ece5d5_1px,transparent_1.2px)] lg:[background-size:15px_15px]">
-        <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col gap-[13px] lg:max-w-none lg:gap-[15px]">
+      <section className="relative -mt-[26px] flex flex-none flex-col rounded-t-[26px] bg-white px-5 pt-[22px] pb-[calc(20px+env(safe-area-inset-bottom))] text-foreground shadow-[0_-14px_40px_rgba(22,19,15,0.22)] sm:px-8 sm:pt-8 lg:mt-0 lg:min-h-svh lg:flex-none lg:rounded-none lg:bg-[#faf8f3] lg:px-11 lg:py-12 lg:shadow-none lg:[background-image:radial-gradient(#ece5d5_1px,transparent_1.2px)] lg:[background-size:15px_15px]">
+        <div className="mx-auto flex w-full max-w-[440px] flex-col gap-[13px] lg:max-w-none lg:flex-1 lg:gap-[15px]">
           <div className="flex flex-col gap-[3px] lg:gap-[5px]">
             <h1 className="text-[22px] font-extrabold tracking-[-0.02em] lg:text-[30px]">{title}</h1>
             <p className="text-sm text-[#6a635a] lg:text-[15px]">{subtitle}</p>
