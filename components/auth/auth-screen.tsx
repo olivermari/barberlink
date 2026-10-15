@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ClockIcon, MapPinIcon, ShieldCheckIcon } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand/logo";
@@ -8,12 +9,11 @@ import { cn } from "@/lib/utils";
 // screen) and a white sheet that fills the rest, so the whole form, submit
 // button included, fits on one screen even on a 320x568 phone. Tablets keep
 // that layout with the form capped at 440px instead of stretching.
-// Desktop: an ink panel (photo slot, headline, three proof points) beside
+// Desktop: a photo panel (headline, three proof points) beside
 // a 480px form column. Sign-up and the other auth pages use the same frame.
 //
-// The hatched block is the design's photo slot — swap the background for
-// a real photo when there is one.
-const HATCH = "repeating-linear-gradient(45deg,#2b251e 0 2px,transparent 2px 11px)";
+// Hero layers, back to front: the barber photo, a light ink tint so the
+// headline stays readable, the red pin watermark, then the bottom fade.
 
 const POINTS = [
   { Icon: ShieldCheckIcon, label: ["Trusted", "Barbers"] },
@@ -36,19 +36,23 @@ export function AuthScreen({
     <div className="flex min-h-svh flex-col bg-[#16130f] lg:grid lg:grid-cols-[minmax(0,1fr)_480px] lg:bg-white">
       {/* Hero (phones) / ink panel (desktop) */}
       <section className="relative flex flex-none flex-col overflow-hidden bg-[#241f19] px-5 pt-[calc(16px+env(safe-area-inset-top))] pb-[46px] text-white sm:px-8 sm:pb-[54px] lg:min-h-svh lg:p-10">
-        <div className="absolute inset-0" style={{ backgroundImage: HATCH }} aria-hidden />
+        <Image
+          src="/images/auth-barber.jpg"
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 1024px) calc(100vw - 480px), 100vw"
+          className="object-cover object-[68%_40%] lg:object-[38%_center]"
+        />
+        <div className="absolute inset-0 bg-[#16130f]/55 lg:bg-[#16130f]/25" aria-hidden />
         <LogoMark
           size={420}
-          className="absolute -top-[40px] -right-[70px] h-[300px] w-auto opacity-50 sm:h-[360px] lg:top-10 lg:-right-[120px] lg:h-[560px]"
+          className="absolute -top-[40px] -right-[70px] h-[300px] w-auto opacity-45 sm:h-[360px] lg:opacity-35 lg:top-10 lg:-right-[120px] lg:h-[560px]"
         />
         <div
           className="absolute inset-x-0 bottom-0 h-[170px] bg-gradient-to-b from-[#16130f]/0 to-[#16130f]/[0.88] lg:h-[280px] lg:from-[#241f19]/0 lg:to-[#16130f]/90"
           aria-hidden
         />
-        <span className="absolute top-[18px] right-5 hidden text-[11px] tracking-[0.16em] text-[#6f675c] uppercase lg:block">
-          <span className="lg:hidden">photo slot · barber at work</span>
-          <span className="hidden lg:inline">photo slot</span>
-        </span>
         <Link href="/" className="relative w-fit text-white">
           <Logo className="text-[23px] lg:text-[26px]" />
         </Link>
