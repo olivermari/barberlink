@@ -10,7 +10,17 @@ export default async function AdminMorePage() {
     .select("id", { count: "exact", head: true })
     .in("status", ["open", "investigating"]);
 
+  const { count: newApplications } = await supabase
+    .from("barber_applications")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "submitted");
+
   const links = [
+    {
+      href: "/admin/applications",
+      label: "Applications",
+      detail: newApplications ? `${newApplications} new` : "None new",
+    },
     { href: "/admin/pricing", label: "Services & pricing", detail: "Menu prices, commission, radius, wallet minimum" },
     {
       href: "/admin/disputes",

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ActivityIcon,
   CalendarCheckIcon,
+  ClipboardListIcon,
   GavelIcon,
   MapPinnedIcon,
   MoreHorizontalIcon,
@@ -14,12 +15,13 @@ import {
 import { cn } from "@/lib/utils";
 import { BottomTabBar, type TabLink } from "@/components/bottom-tab-bar";
 
-type Badge = "pending" | "disputes";
+type Badge = "pending" | "disputes" | "applications";
 
 const NAV_ITEMS: { href: string; label: string; icon: typeof ActivityIcon; badge?: Badge }[] = [
   { href: "/admin", label: "Live ops", icon: ActivityIcon },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarCheckIcon },
   { href: "/admin/barbers", label: "Barbers", icon: ScissorsIcon, badge: "pending" },
+  { href: "/admin/applications", label: "Applications", icon: ClipboardListIcon, badge: "applications" },
   { href: "/admin/pricing", label: "Services & pricing", icon: TagIcon },
   { href: "/admin/disputes", label: "Disputes", icon: GavelIcon, badge: "disputes" },
   { href: "/admin/coverage", label: "Coverage areas", icon: MapPinnedIcon },
@@ -46,14 +48,20 @@ function isActive(pathname: string, href: string) {
 export function AdminSidebar({
   pendingCount,
   openDisputesCount,
+  newApplicationsCount,
   email,
 }: {
   pendingCount: number;
   openDisputesCount: number;
+  newApplicationsCount: number;
   email: string | null;
 }) {
   const pathname = usePathname();
-  const counts: Record<Badge, number> = { pending: pendingCount, disputes: openDisputesCount };
+  const counts: Record<Badge, number> = {
+    pending: pendingCount,
+    disputes: openDisputesCount,
+    applications: newApplicationsCount,
+  };
 
   return (
     <aside className="hidden w-[230px] flex-none flex-col gap-1.5 border-r-[1.5px] border-outline bg-muted px-3.5 py-[18px] sm:flex">

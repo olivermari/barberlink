@@ -14,7 +14,7 @@ export default async function AdminLayout({
 
   // "needs_info" barbers are waiting on themselves, not on an admin, so
   // only "pending" counts toward the badge.
-  const [{ count: pendingCount }, { count: openDisputesCount }] = await Promise.all([
+  const [{ count: pendingCount }, { count: openDisputesCount }, { count: newApplicationsCount }] = await Promise.all([
     supabase
       .from("barber_profiles")
       .select("id", { count: "exact", head: true })
@@ -23,6 +23,11 @@ export default async function AdminLayout({
       .from("disputes")
       .select("id", { count: "exact", head: true })
       .in("status", ["open", "investigating"]),
+    // Marketing-site applications nobody has picked up yet (0034).
+    supabase
+      .from("barber_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "submitted"),
   ]);
 
   return (
@@ -37,6 +42,7 @@ export default async function AdminLayout({
         <AdminSidebar
           pendingCount={pendingCount ?? 0}
           openDisputesCount={openDisputesCount ?? 0}
+          newApplicationsCount={newApplicationsCount ?? 0}
           email={user.email ?? null}
         />
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>
