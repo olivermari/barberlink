@@ -321,7 +321,9 @@ export default async function AdminBookingsPage({
                 ["Max match radius", "Quick Match ceiling", `${settings.max_match_radius_km} km`],
                 [
                   "Distance fee",
-                  `Per km beyond ${settings.distance_free_km} km, barber keeps it`,
+                  settings.distance_free_km > 0
+                    ? `Per km beyond ${settings.distance_free_km} km, barber keeps it`
+                    : "Per km from the barber, barber keeps it",
                   formatPeso(settings.distance_fee_per_km),
                 ],
                 ["Min wallet to go online", "Blocks lower balances", formatPeso(settings.min_wallet_to_go_online)],

@@ -9,6 +9,7 @@ export type ReceiptData = {
   serviceName: string;
   servicePrice: number;
   chosenFee: number;
+  travelFee: number;
   method: string;
   total: number;
   address: string;
@@ -21,6 +22,7 @@ export function DownloadReceiptButton({ receipt }: { receipt: ReceiptData }) {
     const rows = [
       [receipt.serviceName, `₱${receipt.servicePrice}`],
       ...(receipt.chosenFee > 0 ? [["Chosen barber", `₱${receipt.chosenFee}`]] : []),
+      ...(receipt.travelFee > 0 ? [["Travel", `₱${receipt.travelFee}`]] : []),
       ["Paid with", receipt.method],
     ]
       .map(([k, v]) => `<tr><td>${esc(k)}</td><td style="text-align:right">${esc(v)}</td></tr>`)

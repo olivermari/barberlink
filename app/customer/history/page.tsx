@@ -51,7 +51,7 @@ export default async function CustomerHistoryPage({
   const { data: rows } = await supabase
     .from("bookings")
     .select(
-      "id, requested_at, completed_at, status, price, barber_id, service_id, payment_method, payment_status, dispatch_mode, address_text",
+      "id, requested_at, completed_at, status, price, barber_id, service_id, payment_method, payment_status, dispatch_mode, travel_fee, address_text",
     )
     .eq("customer_id", user.id)
     .order("requested_at", { ascending: false });
@@ -90,6 +90,7 @@ export default async function CustomerHistoryPage({
     const barber = barberById.get(r.barber_id);
     const total = Number(r.price);
     const chosenFee = r.dispatch_mode === "chosen" ? CHOSEN_BARBER_SURCHARGE : 0;
+    const travelFee = Number(r.travel_fee ?? 0);
     const review = reviewFor.get(r.id);
     return {
       id: r.id,
@@ -98,8 +99,9 @@ export default async function CustomerHistoryPage({
       barberAvatarUrl: barber?.avatar_url ?? null,
       when: formatDayTime(r.completed_at ?? r.requested_at),
       serviceName: serviceName.get(r.service_id ?? "") ?? "Service",
-      servicePrice: total - chosenFee,
+      servicePrice: total - chosenFee - travelFee,
       chosenFee,
+      travelFee,
       method: PAYMENT_METHOD_LABEL[r.payment_method ?? ""] ?? "—",
       total,
       address: r.address_text,

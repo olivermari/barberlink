@@ -6,7 +6,7 @@ type Client = Awaited<ReturnType<typeof createClient>>;
 export const SETTING_DEFAULTS = {
   fee_percentage: 25,
   max_match_radius_km: 5,
-  distance_free_km: 3,
+  distance_free_km: 0,
   distance_fee_per_km: 10,
   min_wallet_to_go_online: 0,
   request_timeout_seconds: 40,

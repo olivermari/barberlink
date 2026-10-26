@@ -40,7 +40,7 @@ const FIELDS: {
   {
     key: "distance_free_km",
     label: "Free distance",
-    help: "A barber within this range adds no travel charge; past it, the distance fee applies.",
+    help: "Travel is free within this distance; past it the fee applies. 0 charges from the first km.",
     unit: "km",
     min: 0,
     max: 50,

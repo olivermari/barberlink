@@ -16,9 +16,16 @@ export function paymentLabel(method: PaymentMethod) {
 }
 
 // Service price, plus the ₱50 when the customer picked the barber
-// themselves (Quick Match has no surcharge).
-export function bookingTotal(servicePrice: number, chosen: boolean) {
+// themselves (Quick Match has no surcharge). This is what the platform
+// commission is taken on.
+export function bookingBase(servicePrice: number, chosen: boolean) {
   return chosen ? servicePrice + CHOSEN_BARBER_SURCHARGE : servicePrice;
+}
+
+// What the customer pays: the base plus the travel fee (per km from the
+// barber to the pin), which the barber keeps in full.
+export function bookingTotal(servicePrice: number, chosen: boolean, travelFee = 0) {
+  return bookingBase(servicePrice, chosen) + travelFee;
 }
 
 type Input = {
@@ -26,6 +33,8 @@ type Input = {
   serviceId: string;
   servicePrice: number;
   chosen: boolean;
+  // ₱ from distanceFee(): the barber-to-pin distance, already rounded.
+  travelFee: number;
   address: string;
   lat: number;
   lng: number;
@@ -50,11 +59,12 @@ export async function createBooking(
     .eq("key", "fee_percentage")
     .single();
 
-  const total = bookingTotal(input.servicePrice, input.chosen);
+  const base = bookingBase(input.servicePrice, input.chosen);
+  const total = base + input.travelFee;
   const feePercent = Number(feeSetting?.value ?? 10);
-  // The commission applies to the whole charge, chosen-barber surcharge
-  // included — not just the service price.
-  const platformFee = Math.round(total * feePercent) / 100;
+  // The commission applies to the service price and the chosen-barber
+  // surcharge — not the travel fee, which goes to the barber in full.
+  const platformFee = Math.round(base * feePercent) / 100;
   const barberPayout = Math.round((total - platformFee) * 100) / 100;
 
   const { data: booking, error } = await supabase
@@ -67,6 +77,7 @@ export async function createBooking(
       address_lat: input.lat,
       address_lng: input.lng,
       price: total,
+      travel_fee: input.travelFee,
       platform_fee: platformFee,
       barber_payout: barberPayout,
       payment_method: input.paymentMethod,

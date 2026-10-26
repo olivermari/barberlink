@@ -28,7 +28,8 @@ import { distanceKm } from "@/lib/distance";
 import { getCurrentPosition, LocationRequiredError } from "@/lib/get-current-position";
 import { reverseGeocode } from "@/lib/reverse-geocode";
 import { setCuttingLocation, useCuttingLocation } from "@/lib/location-store";
-import { CHOSEN_BARBER_SURCHARGE } from "@/lib/pricing";
+import { CHOSEN_BARBER_SURCHARGE, distanceFee } from "@/lib/pricing";
+import { useDistanceFee } from "@/lib/use-distance-fee";
 import { useBarbers } from "@/lib/use-barbers";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { cn } from "@/lib/utils";
@@ -68,8 +69,12 @@ function BookingConfirmation() {
   const spot = pin ?? stored ?? gps;
   const addressValue = address ?? stored?.label ?? "";
   const service = barber?.services.find((s) => s.id === serviceId) ?? barber?.services[0] ?? null;
-  const total = service ? bookingTotal(service.price, chosen) : 0;
   const km = barber ? distanceKm(spot, barber) : 0;
+  // Travel fee: per km from the barber's position to the pin being booked,
+  // so it follows the pin if the customer moves it. The barber keeps it.
+  const distanceSettings = useDistanceFee();
+  const travelFee = barber ? distanceFee(km, distanceSettings) : 0;
+  const total = service ? bookingTotal(service.price, chosen, travelFee) : 0;
 
   // Prefill the search-page pin's label once when it's known.
   useEffect(() => {
@@ -112,6 +117,7 @@ function BookingConfirmation() {
       serviceId: service.id,
       servicePrice: service.price,
       chosen,
+      travelFee,
       address: addressValue,
       lat: spot.lat,
       lng: spot.lng,
@@ -125,7 +131,7 @@ function BookingConfirmation() {
     // Remember this spot so the next booking starts from it.
     setCuttingLocation({ lat: spot.lat, lng: spot.lng, label: addressValue.trim() });
     if (result.external) {
-      window.location.href = result.redirect;
+      window.location.assign(result.redirect);
       return;
     }
     toast.success(result.queued ? `You're in ${barber.name}'s queue.` : "Request sent!");
@@ -169,6 +175,14 @@ function BookingConfirmation() {
         <div className="flex justify-between text-sm text-[#6a635a] lg:text-[#4c463d]">
           <span>Chosen barber</span>
           <span className="lg:font-semibold">₱{CHOSEN_BARBER_SURCHARGE}</span>
+        </div>
+      )}
+      {travelFee > 0 && (
+        <div className="flex justify-between text-sm text-[#6a635a] lg:text-[#4c463d]">
+          <span>
+            Travel · {km.toFixed(1)} km × ₱{distanceSettings.perKm}
+          </span>
+          <span className="lg:font-semibold">₱{travelFee}</span>
         </div>
       )}
     </>

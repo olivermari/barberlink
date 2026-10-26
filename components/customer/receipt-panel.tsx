@@ -36,6 +36,7 @@ export function ReceiptPanel({
       <div className="h-px bg-line-soft" />
       <Row label={receipt.serviceName} value={`₱${receipt.servicePrice}`} />
       {receipt.chosenFee > 0 && <Row label="Chosen barber" value={`₱${receipt.chosenFee}`} />}
+      {receipt.travelFee > 0 && <Row label="Travel" value={`₱${receipt.travelFee}`} />}
       <Row label="Paid with" value={receipt.method} />
       <div className="h-px bg-line-soft" />
       <div className="flex items-baseline justify-between">
